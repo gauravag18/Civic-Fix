@@ -1,6 +1,7 @@
 {
-  "name": "my-app",
+  "name": "civicfix",
   "version": "0.1.0",
+  "description": "Community-powered civic issue reporting and resolution platform.",
   "private": true,
   "scripts": {
     "dev": "next dev",
