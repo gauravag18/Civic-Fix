@@ -1,0 +1,295 @@
+// Approved CivicFix domain schema.
+// Partial unique indexes use the Prisma 7.10 preview feature `partialIndexes`.
+// CHECK constraints that Prisma cannot represent are in prisma/sql/pending-check-constraints.sql.
+// That SQL is not a migration and must not be applied until a migration is reviewed.
+
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum IssueStatus {
+  REPORTED
+  UNDER_REVIEW
+  VERIFIED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  REJECTED
+  REOPENED
+}
+
+enum NotificationType {
+  ISSUE_VERIFIED
+  ISSUE_ASSIGNED
+  STATUS_CHANGED
+  COMMENT_ADDED
+  ISSUE_RESOLVED
+  ADMIN_NOTICE
+}
+
+model User {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String        @unique @db.VarChar(320)
+  name          String        @db.VarChar(160)
+  accountStatus AccountStatus @default(ACTIVE)
+  disabledAt    DateTime?     @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+
+  rolesReceived          UserRole[]              @relation("UserRoleRecipient")
+  rolesAssigned          UserRole[]              @relation("UserRoleAssigner")
+  departmentMemberships  DepartmentMembership[]
+  reportedIssues         Issue[]                 @relation("IssueReporter")
+  uploadedImages         IssueImage[]
+  commentsAuthored       IssueComment[]          @relation("CommentAuthor")
+  commentsDeleted        IssueComment[]          @relation("CommentDeleter")
+  votes                  IssueVote[]
+  assignmentsReceived    IssueAssignment[]       @relation("AssignmentAssignee")
+  assignmentsMade        IssueAssignment[]       @relation("AssignmentAssigner")
+  statusChanges          IssueStatusHistory[]
+  notifications          Notification[]
+  auditLogs              AuditLog[]
+}
+
+model Role {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        String @unique @db.VarChar(64)
+  name        String @db.VarChar(120)
+  description String
+
+  grants UserRole[]
+}
+
+model UserRole {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String    @db.Uuid
+  roleId       String    @db.Uuid
+  assignedById String?   @db.Uuid
+  assignedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt    DateTime? @db.Timestamptz(3)
+
+  user       User  @relation("UserRoleRecipient", fields: [userId], references: [id], onDelete: Restrict)
+  role       Role  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  assignedBy User? @relation("UserRoleAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@unique([userId, roleId], map: "user_role_one_active_grant", where: raw("\"revokedAt\" IS NULL"))
+}
+
+model Department {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        String   @unique @db.VarChar(64)
+  name        String   @unique @db.VarChar(160)
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  memberships DepartmentMembership[]
+  assignments IssueAssignment[]
+}
+
+model DepartmentMembership {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String    @db.Uuid
+  departmentId String    @db.Uuid
+  startedAt    DateTime  @default(now()) @db.Timestamptz(3)
+  endedAt      DateTime? @db.Timestamptz(3)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+
+  @@unique([userId], map: "membership_one_active", where: raw("\"endedAt\" IS NULL"))
+}
+
+model IssueCategory {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code      String  @unique @db.VarChar(64)
+  name      String  @unique @db.VarChar(160)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  issues Issue[]
+}
+
+model Issue {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String      @db.VarChar(160)
+  description String
+  categoryId  String      @db.Uuid
+  reporterId  String      @db.Uuid
+  locationId  String      @unique @db.Uuid
+  severity    Severity
+  status      IssueStatus @default(REPORTED)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(3)
+  resolvedAt  DateTime?   @db.Timestamptz(3)
+  closedAt    DateTime?   @db.Timestamptz(3)
+  deletedAt   DateTime?   @db.Timestamptz(3)
+
+  category      IssueCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  reporter      User                 @relation("IssueReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  location      Location             @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  images        IssueImage[]
+  comments      IssueComment[]
+  votes         IssueVote[]
+  assignments   IssueAssignment[]
+  statusHistory IssueStatusHistory[]
+  notifications Notification[]
+
+  @@index([status, createdAt(sort: Desc)], map: "issue_active_status_created_at", where: raw("\"deletedAt\" IS NULL"))
+  @@index([categoryId, status], map: "issue_category_status")
+  @@index([reporterId, createdAt(sort: Desc)], map: "issue_reporter_created_at")
+}
+
+model Location {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  description String
+  locality    String?  @db.VarChar(160)
+  city        String   @db.VarChar(120)
+  postalCode  String?  @db.VarChar(16)
+  latitude    Decimal? @db.Decimal(9, 6)
+  longitude   Decimal? @db.Decimal(9, 6)
+
+  issue Issue?
+
+  @@index([city, locality], map: "location_city_locality")
+}
+
+model IssueImage {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issueId          String    @db.Uuid
+  uploadedById     String    @db.Uuid
+  storageKey       String    @unique @db.VarChar(512)
+  originalFilename String    @db.VarChar(255)
+  mimeType         String    @db.VarChar(127)
+  byteSize         Int
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  deletedAt        DateTime? @db.Timestamptz(3)
+
+  issue      Issue @relation(fields: [issueId], references: [id], onDelete: Restrict)
+  uploadedBy User  @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+}
+
+model IssueComment {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issueId     String    @db.Uuid
+  authorId    String    @db.Uuid
+  body        String
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  deletedById String?   @db.Uuid
+
+  issue         Issue          @relation(fields: [issueId], references: [id], onDelete: Restrict)
+  author        User           @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  deletedBy     User?          @relation("CommentDeleter", fields: [deletedById], references: [id], onDelete: Restrict)
+  notifications Notification[]
+
+  @@index([issueId, createdAt], map: "comment_issue_created_at")
+}
+
+model IssueVote {
+  issueId   String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Restrict)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([issueId, userId])
+}
+
+model IssueAssignment {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issueId      String    @db.Uuid
+  departmentId String    @db.Uuid
+  assigneeId   String?   @db.Uuid
+  assignedById String    @db.Uuid
+  assignedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  endedAt      DateTime? @db.Timestamptz(3)
+  note         String?
+
+  issue      Issue      @relation(fields: [issueId], references: [id], onDelete: Restrict)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  assignee   User?      @relation("AssignmentAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  assignedBy User       @relation("AssignmentAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@unique([issueId], map: "assignment_one_active", where: raw("\"endedAt\" IS NULL"))
+  @@index([departmentId, endedAt], map: "assignment_department_ended_at")
+  @@index([assigneeId], map: "assignment_active_assignee", where: raw("\"endedAt\" IS NULL AND \"assigneeId\" IS NOT NULL"))
+}
+
+model IssueStatusHistory {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issueId     String       @db.Uuid
+  fromStatus  IssueStatus?
+  toStatus    IssueStatus
+  changedById String       @db.Uuid
+  reason      String?
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+
+  issue     Issue @relation(fields: [issueId], references: [id], onDelete: Restrict)
+  changedBy User  @relation(fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([issueId, createdAt], map: "status_history_issue_created_at")
+}
+
+model StatusTransition {
+  fromStatus IssueStatus
+  toStatus   IssueStatus
+
+  @@id([fromStatus, toStatus])
+}
+
+model Notification {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientId String           @db.Uuid
+  type        NotificationType
+  title       String           @db.VarChar(160)
+  body        String
+  issueId     String?          @db.Uuid
+  commentId   String?          @db.Uuid
+  readAt      DateTime?        @db.Timestamptz(3)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+
+  recipient User          @relation(fields: [recipientId], references: [id], onDelete: Restrict)
+  issue     Issue?        @relation(fields: [issueId], references: [id], onDelete: Restrict)
+  comment   IssueComment? @relation(fields: [commentId], references: [id], onDelete: Restrict)
+
+  @@index([recipientId, readAt, createdAt(sort: Desc)], map: "notification_recipient_read_created")
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String   @db.VarChar(80)
+  entityType String   @db.VarChar(80)
+  entityId   String   @db.Uuid
+  metadata   Json     @default("{}") @db.JsonB
+  ipAddress  String?  @db.Inet
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId, createdAt], map: "audit_entity_created_at")
+  @@index([actorId, createdAt], map: "audit_actor_created_at")
+}
