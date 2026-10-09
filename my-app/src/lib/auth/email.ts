@@ -1,3 +1,15 @@
+export function isSafeAppOrigin(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    if (url.username || url.password || url.search || url.hash) return false;
+    if (url.pathname !== "/" && url.pathname !== "") return false;
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 export function isEmailConfigured(): boolean {
   return Boolean(
     process.env.EMAIL_FROM &&
@@ -5,7 +17,7 @@ export function isEmailConfigured(): boolean {
       process.env.SMTP_PORT &&
       process.env.SMTP_USER &&
       process.env.SMTP_PASSWORD &&
-      process.env.APP_ORIGIN,
+      isSafeAppOrigin(process.env.APP_ORIGIN),
   );
 }
 

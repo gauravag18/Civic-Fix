@@ -11,12 +11,12 @@ import {
 import { createPrismaAuthStore } from "@/lib/auth/prisma-store";
 import { RATE_LIMITED } from "@/lib/auth/messages";
 import { rateKey, registerLimiter, tokenLimiter } from "@/lib/auth/rate-limit";
+import { clientAddress, trustedProxyHops } from "@/lib/auth/request-security";
 import type { PublicResult } from "@/lib/auth/service";
 
-async function clientAddress(): Promise<string> {
+async function requestAddress(): Promise<string> {
   const headerStore = await headers();
-  const forwarded = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || headerStore.get("x-real-ip") || "unknown";
+  return clientAddress(headerStore, trustedProxyHops(process.env.TRUSTED_PROXY_HOPS));
 }
 
 function limited(kind: string, address: string, email: string): boolean {
@@ -29,7 +29,7 @@ export async function registerAction(
   formData: FormData,
 ): Promise<PublicResult> {
   const email = String(formData.get("email") ?? "");
-  const address = await clientAddress();
+  const address = await requestAddress();
   if (limited("register", address, email)) {
     return { error: true, message: RATE_LIMITED };
   }
@@ -49,7 +49,7 @@ export async function requestVerificationAction(
   formData: FormData,
 ): Promise<PublicResult> {
   const email = String(formData.get("email") ?? "");
-  const address = await clientAddress();
+  const address = await requestAddress();
   if (limited("verify-request", address, email)) {
     return { error: true, message: RATE_LIMITED };
   }
@@ -61,7 +61,7 @@ export async function verifyEmailAction(
   formData: FormData,
 ): Promise<PublicResult> {
   const token = String(formData.get("token") ?? "");
-  const address = await clientAddress();
+  const address = await requestAddress();
   if (limited("verify", address, "token")) {
     return { error: true, message: RATE_LIMITED };
   }
@@ -73,7 +73,7 @@ export async function requestResetAction(
   formData: FormData,
 ): Promise<PublicResult> {
   const email = String(formData.get("email") ?? "");
-  const address = await clientAddress();
+  const address = await requestAddress();
   if (limited("reset-request", address, email)) {
     return { error: true, message: RATE_LIMITED };
   }
@@ -84,7 +84,7 @@ export async function resetPasswordAction(
   _previous: PublicResult,
   formData: FormData,
 ): Promise<PublicResult> {
-  const address = await clientAddress();
+  const address = await requestAddress();
   if (limited("reset", address, "token")) {
     return { error: true, message: RATE_LIMITED };
   }

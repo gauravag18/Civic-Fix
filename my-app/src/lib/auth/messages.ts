@@ -5,6 +5,9 @@ export const SIGN_IN_FAILURE = "Sign-in did not succeed.";
 export const GOOGLE_UNAVAILABLE =
   "Google sign-in is not available until it is configured.";
 
+export const LOGIN_EMAIL_UNAVAILABLE =
+  "Creating an account and resetting a password are unavailable until email delivery is configured.";
+
 export const REGISTER_NEUTRAL =
   "If the address can be registered, check your email for the next step.";
 

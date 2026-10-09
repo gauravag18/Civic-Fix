@@ -11,20 +11,15 @@ import {
 import { createPrismaAuthStore } from "@/lib/auth/prisma-store";
 import { authenticate } from "@/lib/auth/service";
 import { loginLimiter, rateKey } from "@/lib/auth/rate-limit";
+import {
+  clientAddress,
+  safeCallbackUrl,
+  secureSessionCookies,
+  sessionCookiePolicy,
+  trustedProxyHops,
+} from "@/lib/auth/request-security";
 import { InactiveSessionError, assessToken } from "@/lib/auth/store";
 import { SESSION_MAX_AGE_SECONDS } from "@/lib/auth/tokens";
-
-function headerValue(headers: unknown, name: string): string {
-  if (!headers || typeof headers !== "object") return "unknown";
-  if ("get" in headers && typeof headers.get === "function") {
-    const value = headers.get(name);
-    return typeof value === "string" && value ? value : "unknown";
-  }
-  const record = headers as Record<string, unknown>;
-  const value = record[name] ?? record[name.toLowerCase()];
-  if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : "unknown";
-  return typeof value === "string" && value ? value : "unknown";
-}
 
 function authSecret(): string | undefined {
   const value = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
@@ -37,11 +32,33 @@ function rejectInactive(error: unknown): never {
 }
 
 const google = googleProviderOptions(process.env);
+const secureCookies = secureSessionCookies(process.env.NEXTAUTH_URL);
+const cookieOptions = sessionCookiePolicy(secureCookies);
 
 export const authOptions: NextAuthOptions = {
   secret: authSecret(),
+  useSecureCookies: secureCookies,
+  // JWT sessions last 12 hours. Sign-out deletes only this browser's cookie.
+  // A copied token for an account that is still active cannot be revoked
+  // without new session storage. Disablement, suspension, a missing email
+  // verification, and a password change are rejected on the next session
+  // check, and that check clears the cookie. The custom Session table is unused.
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   pages: { signIn: "/login", error: "/login" },
+  cookies: {
+    sessionToken: {
+      name: `${secureCookies ? "__Secure-" : ""}next-auth.session-token`,
+      options: cookieOptions,
+    },
+    callbackUrl: {
+      name: `${secureCookies ? "__Secure-" : ""}next-auth.callback-url`,
+      options: cookieOptions,
+    },
+    csrfToken: {
+      name: `${secureCookies ? "__Host-" : ""}next-auth.csrf-token`,
+      options: cookieOptions,
+    },
+  },
   // Google is registered only when both server credentials exist.
   // Linking is decided in authenticateGoogle, and only for a verified CivicFix email.
   providers: [
@@ -54,8 +71,8 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials, request) {
         const email = String(credentials?.email ?? "");
         const password = String(credentials?.password ?? "");
-        const forwarded = headerValue(request?.headers, "x-forwarded-for").split(",")[0]?.trim();
-        const key = rateKey(["login", forwarded || "unknown", email.toLocaleLowerCase()]);
+        const address = clientAddress(request?.headers, trustedProxyHops(process.env.TRUSTED_PROXY_HOPS));
+        const key = rateKey(["login", address, email.toLocaleLowerCase()]);
         if (!loginLimiter.allow(key, Date.now())) return null;
         const result = await authenticate(createPrismaAuthStore(), email, password);
         if (!result.ok) return null;
@@ -70,6 +87,9 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      return safeCallbackUrl(url, baseUrl);
+    },
     async signIn({ account, profile, user }) {
       if (account?.provider !== "google") return true;
       try {
@@ -109,11 +129,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (!token.sub) throw new InactiveSessionError();
       return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.sub,
-        },
+        expires: session.expires,
+        user: { id: token.sub },
       };
     },
   },

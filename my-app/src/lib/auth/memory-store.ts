@@ -127,6 +127,17 @@ export class MemoryAuthStore implements AuthStore {
     return "issued";
   }
 
+  async findResetAccount(
+    tokenHash: Buffer,
+    now: Date,
+  ): Promise<{ email: string; name: string } | null> {
+    const token = this.findOpenToken(this.resets, tokenHash, now);
+    if (!token) return null;
+    const user = await this.findUserById(token.userId);
+    if (!user || user.accountStatus !== "ACTIVE" || user.disabledAt) return null;
+    return { email: user.email, name: user.name };
+  }
+
   async consumeResetToken(input: {
     tokenHash: Buffer;
     passwordHash: string;

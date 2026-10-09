@@ -200,11 +200,14 @@ export async function resetPassword(
   now: Date,
 ): Promise<PublicResult> {
   if (!input.token) return { error: true, message: TOKEN_INVALID };
-  const passwordError = validatePassword(input.password, "", "");
+  const tokenHash = hashSecretToken(input.token);
+  const account = await store.findResetAccount(tokenHash, now);
+  if (!account) return { error: true, message: TOKEN_INVALID };
+  const passwordError = validatePassword(input.password, account.email, account.name);
   if (passwordError) return { error: true, message: passwordError };
   const passwordHash = await hashPassword(input.password);
   const result = await store.consumeResetToken({
-    tokenHash: hashSecretToken(input.token),
+    tokenHash,
     passwordHash,
     now,
   });

@@ -47,6 +47,10 @@ export type AuthStore = {
     expiresAt: Date;
     now: Date;
   }): Promise<"issued" | "absent" | "ineligible">;
+  findResetAccount(
+    tokenHash: Buffer,
+    now: Date,
+  ): Promise<{ email: string; name: string } | null>;
   consumeResetToken(input: {
     tokenHash: Buffer;
     passwordHash: string;

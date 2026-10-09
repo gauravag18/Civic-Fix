@@ -186,6 +186,20 @@ export function createPrismaAuthStore(): AuthStore {
       });
       return "issued";
     },
+    async findResetAccount(tokenHash, now) {
+      const hashed = bytes(tokenHash);
+      const token = await db.passwordResetToken.findUnique({
+        where: { tokenHash: hashed },
+        include: {
+          user: {
+            select: { email: true, name: true, accountStatus: true, disabledAt: true },
+          },
+        },
+      });
+      if (!token || token.consumedAt || token.expiresAt <= now) return null;
+      if (token.user.accountStatus !== "ACTIVE" || token.user.disabledAt) return null;
+      return { email: token.user.email, name: token.user.name };
+    },
     async consumeResetToken(input) {
       const hashed = bytes(input.tokenHash);
       return db.$transaction(async (tx) => {
