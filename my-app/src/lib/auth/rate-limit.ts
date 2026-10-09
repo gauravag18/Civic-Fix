@@ -30,3 +30,4 @@ const WINDOW_MS = 15 * 60 * 1000;
 export const loginLimiter = new SlidingWindowLimiter(8, WINDOW_MS);
 export const registerLimiter = new SlidingWindowLimiter(5, WINDOW_MS);
 export const tokenLimiter = new SlidingWindowLimiter(8, WINDOW_MS);
+export const issueReportLimiter = new SlidingWindowLimiter(8, WINDOW_MS);

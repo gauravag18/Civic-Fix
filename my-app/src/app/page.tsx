@@ -19,6 +19,8 @@ export default function Home() {
           Community-powered civic issue reporting and resolution platform.
         </p>
         <p className="mt-4 text-small">
+          <Link href="/report">Report an issue</Link>
+          {" · "}
           <Link href="/login">Log in</Link>
           {" · "}
           <Link href="/register">Create an account</Link>

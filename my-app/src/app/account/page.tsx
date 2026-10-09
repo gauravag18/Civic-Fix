@@ -23,6 +23,11 @@ export default async function AccountPage() {
               <dd>{authorization.email}</dd>
             </div>
           </dl>
+          <p className="text-small">
+            <Link href="/report">Report an issue</Link>
+            {" · "}
+            <Link href="/my-issues">My reports</Link>
+          </p>
           <SignOutButton />
         </div>
       ) : (
