@@ -3,7 +3,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion, MotionConfig } from "framer-motion"
 import { Slot } from "radix-ui"
 
 const buttonVariants = cva(
@@ -59,7 +59,6 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
-  const reduceMotion = useReducedMotion()
   const classes = cn(buttonVariants({ variant, size, className }))
 
   if (asChild) {
@@ -82,16 +81,18 @@ function Button({
   }
 
   return (
-    <motion.button
-      type={type}
-      data-slot="button"
-      data-variant={variant}
-      data-size={size}
-      className={classes}
-      whileTap={reduceMotion ? undefined : { y: 1 }}
-      transition={{ duration: 0.12 }}
-      {...props}
-    />
+    <MotionConfig reducedMotion="user">
+      <motion.button
+        type={type}
+        data-slot="button"
+        data-variant={variant}
+        data-size={size}
+        className={classes}
+        whileTap={{ y: 1 }}
+        transition={{ duration: 0.12 }}
+        {...props}
+      />
+    </MotionConfig>
   )
 }
 

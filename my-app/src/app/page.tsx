@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,11 @@ export default function Home() {
         <h1 className="text-page-title font-semibold">CivicFix</h1>
         <p className="mt-2 max-w-prose text-body">
           Community-powered civic issue reporting and resolution platform.
+        </p>
+        <p className="mt-4 text-small">
+          <Link href="/login">Log in</Link>
+          {" · "}
+          <Link href="/register">Create an account</Link>
         </p>
       </header>
 
