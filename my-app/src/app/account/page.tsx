@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthPage } from "@/components/auth-page";
 import { SignOutButton } from "@/components/sign-out-button";
+import { Capability, hasCapability } from "@/lib/auth/capabilities";
 import { getAuthorization } from "@/lib/auth/authorization";
 
 export default async function AccountPage() {
@@ -27,6 +28,12 @@ export default async function AccountPage() {
             <Link href="/report">Report an issue</Link>
             {" · "}
             <Link href="/my-issues">My reports</Link>
+            {hasCapability(authorization.capabilities, Capability.departmentWork) ? (
+              <>
+                {" · "}
+                <Link href="/department">Department queue</Link>
+              </>
+            ) : null}
           </p>
           <SignOutButton />
         </div>

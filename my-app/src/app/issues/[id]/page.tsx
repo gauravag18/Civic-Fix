@@ -83,6 +83,26 @@ export default async function IssuePage({
           </dd>
         </div>
       </dl>
+      <section aria-labelledby="comments" className="flex flex-col gap-3">
+        <h2 id="comments" className="text-section font-semibold">
+          Comments
+        </h2>
+        {issue.comments.length === 0 ? <p>No department comments yet.</p> : null}
+        <ol className="flex flex-col gap-3">
+          {issue.comments.map((comment) => (
+            <li key={comment.id} className="border-b border-border pb-3">
+              <p className="whitespace-pre-wrap">{comment.body}</p>
+              <p className="text-small text-muted-foreground">
+                {comment.authorName}
+                {" · "}
+                <time dateTime={comment.createdAt.toISOString()}>
+                  {formatWhen(comment.createdAt)} UTC
+                </time>
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
       <section aria-labelledby="status-history" className="flex flex-col gap-3">
         <h2 id="status-history" className="text-section font-semibold">
           Status history

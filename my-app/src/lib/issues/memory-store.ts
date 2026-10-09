@@ -2,12 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { IssueStatus as IssueStatusValue } from "@/generated/prisma/enums";
 import { persistReport, type ReportDatabase, type ReportTx } from "@/lib/issues/persist-report";
 import type { IssueStore } from "@/lib/issues/store";
-import type {
-  IssueDetail,
-  IssueSummary,
-  SeverityValue,
-  StatusHistoryEntry,
-} from "@/lib/issues/types";
+import type { IssueDetail, IssueSummary, SeverityValue, StatusHistoryEntry } from "@/lib/issues/types";
+import type { DepartmentStore } from "@/lib/issues/staff-service";
+import type { StaffDatabase, StaffTx } from "@/lib/issues/staff-write";
 
 type StoredCategory = {
   id: string;
@@ -38,6 +35,8 @@ type StoredIssue = {
   status: IssueStatusValue;
   createdAt: Date;
   deletedAt: Date | null;
+  resolvedAt: Date | null;
+  closedAt: Date | null;
 };
 
 type StoredHistory = StatusHistoryEntry & { issueId: string };
@@ -47,22 +46,58 @@ type StoredAudit = {
   action: string;
   entityType: string;
   entityId: string;
-  metadata: { categoryCode: string; severity: SeverityValue };
+  metadata: Record<string, string | null>;
   ipAddress: string | null;
   createdAt: Date;
+};
+
+type StoredAssignment = {
+  id: string;
+  issueId: string;
+  departmentId: string;
+  assigneeId: string | null;
+  assignedById: string;
+  assignedAt: Date;
+  endedAt: Date | null;
+  note: string | null;
+};
+
+type StoredComment = {
+  id: string;
+  issueId: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  createdAt: Date;
+  deletedAt: Date | null;
+};
+
+type StoredMember = {
+  userId: string;
+  departmentId: string;
+  name: string;
+  eligible: boolean;
+};
+
+type StoredTransition = {
+  fromStatus: IssueStatusValue;
+  toStatus: IssueStatusValue;
 };
 
 function sameText(left: string, right: string): boolean {
   return left.localeCompare(right, "en", { sensitivity: "accent" }) === 0;
 }
 
-export class MemoryIssueStore implements IssueStore {
+export class MemoryIssueStore implements IssueStore, DepartmentStore {
   readonly categories: StoredCategory[] = [];
   readonly locations: StoredLocation[] = [];
   readonly issues: StoredIssue[] = [];
   readonly history: StoredHistory[] = [];
   readonly audits: StoredAudit[] = [];
-  readonly assignments: unknown[] = [];
+  readonly assignments: StoredAssignment[] = [];
+  readonly comments: StoredComment[] = [];
+  readonly roster: StoredMember[] = [];
+  readonly transitions: StoredTransition[] = [];
   reads = 0;
   failAt: "history" | "audit" | null = null;
 
@@ -135,6 +170,18 @@ export class MemoryIssueStore implements IssueStore {
         longitude: location.longitude,
       },
       history,
+      comments: this.comments
+        .filter((row) => row.issueId === issue.id && row.deletedAt === null)
+        .sort(
+          (left, right) =>
+            left.createdAt.getTime() - right.createdAt.getTime() || left.id.localeCompare(right.id),
+        )
+        .map((row) => ({
+          id: row.id,
+          body: row.body,
+          createdAt: row.createdAt,
+          authorName: row.authorName,
+        })),
     };
   }
 
@@ -150,6 +197,178 @@ export class MemoryIssueStore implements IssueStore {
       city: location?.city ?? "",
       createdAt: issue.createdAt,
     };
+  }
+
+  async listQueue(departmentId: string, kind: "assigned" | "unassigned", page: number, pageSize: number) {
+    const rows = this.issues
+      .filter((issue) => issue.deletedAt === null && this.inQueue(issue, departmentId, kind))
+      .sort(
+        (left, right) =>
+          right.createdAt.getTime() - left.createdAt.getTime() || right.id.localeCompare(left.id),
+      );
+    const start = (page - 1) * pageSize;
+    return {
+      total: rows.length,
+      items: rows.slice(start, start + pageSize).map((issue) => this.summary(issue)),
+    };
+  }
+
+  async visibleIssue(departmentId: string, issueId: string) {
+    const issue = this.issues.find((row) => row.id === issueId && row.deletedAt === null);
+    if (!issue || !this.canView(issue, departmentId)) return null;
+    const detail = await this.getForReporter(issue.reporterId, issue.id);
+    if (!detail) return null;
+    const active = this.activeAssignment(issue.id);
+    const assignee = active?.assigneeId
+      ? this.roster.find(
+          (member) => member.userId === active.assigneeId && member.departmentId === departmentId,
+        )
+      : undefined;
+    return {
+      ...detail,
+      assignment: active
+        ? {
+            assigneeId: active.assigneeId,
+            assigneeName: assignee?.name ?? null,
+            note: active.note,
+          }
+        : null,
+    };
+  }
+
+  async members(departmentId: string) {
+    return this.roster
+      .filter((member) => member.departmentId === departmentId && member.eligible)
+      .map((member) => ({ id: member.userId, name: member.name }))
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  async transitionsFrom(status: IssueStatusValue) {
+    return this.transitions
+      .filter((transition) => transition.fromStatus === status)
+      .map((transition) => transition.toStatus);
+  }
+
+  staffDb(): StaffDatabase {
+    return this.staffDatabase();
+  }
+
+  private inQueue(
+    issue: StoredIssue,
+    departmentId: string,
+    kind: "assigned" | "unassigned",
+  ): boolean {
+    const active = this.activeAssignment(issue.id);
+    if (kind === "assigned") return active?.departmentId === departmentId;
+    return active === null && this.transitions.some(
+      (transition) => transition.fromStatus === issue.status && transition.toStatus === "ASSIGNED",
+    );
+  }
+
+  private canView(issue: StoredIssue, departmentId: string): boolean {
+    const active = this.activeAssignment(issue.id);
+    if (active) return active.departmentId === departmentId;
+    return this.transitions.some(
+      (transition) => transition.fromStatus === issue.status && transition.toStatus === "ASSIGNED",
+    );
+  }
+
+  private activeAssignment(issueId: string): StoredAssignment | null {
+    return this.assignments.find((row) => row.issueId === issueId && row.endedAt === null) ?? null;
+  }
+
+  private staffDatabase(): StaffDatabase {
+    return {
+      $transaction: (work) => {
+        const snapshot = this.staffSnapshot();
+        return work(this.staffTransaction()).catch((error: unknown) => {
+          this.restoreStaff(snapshot);
+          throw error;
+        });
+      },
+    };
+  }
+
+  private staffTransaction(): StaffTx {
+    return {
+      issue: async (id) => {
+        const issue = this.issues.find((row) => row.id === id);
+        if (!issue) return null;
+        return {
+          id: issue.id,
+          reporterId: issue.reporterId,
+          status: issue.status,
+          deletedAt: issue.deletedAt,
+          createdAt: issue.createdAt,
+          resolvedAt: issue.resolvedAt,
+          closedAt: issue.closedAt,
+        };
+      },
+      activeAssignment: async (issueId) => this.activeAssignment(issueId),
+      allows: async (fromStatus, toStatus) =>
+        this.transitions.some(
+          (transition) => transition.fromStatus === fromStatus && transition.toStatus === toStatus,
+        ),
+      isMember: async (userId, departmentId) =>
+        this.roster.some(
+          (member) =>
+            member.userId === userId && member.departmentId === departmentId && member.eligible,
+        ),
+      endAssignment: async (id, endedAt) => {
+        const assignment = this.assignments.find((row) => row.id === id);
+        if (assignment) assignment.endedAt = endedAt;
+      },
+      createAssignment: async (input) => {
+        this.assignments.push({ ...input, id: randomUUID(), endedAt: null });
+      },
+      updateAssignmentNote: async (id, note) => {
+        const assignment = this.assignments.find((row) => row.id === id);
+        if (assignment) assignment.note = note;
+      },
+      updateStatus: async (input) => {
+        const issue = this.issues.find((row) => row.id === input.issueId);
+        if (!issue) return;
+        issue.status = input.status;
+        issue.resolvedAt = input.resolvedAt;
+        issue.closedAt = input.closedAt;
+      },
+      addHistory: async (input) => {
+        this.history.push({ ...input, id: randomUUID() });
+      },
+      addComment: async (input) => {
+        const id = randomUUID();
+        const author = this.roster.find((member) => member.userId === input.authorId);
+        this.comments.push({
+          ...input,
+          id,
+          authorName: author?.name ?? "Department staff",
+          deletedAt: null,
+        });
+        return { id };
+      },
+      addAudit: async (input) => {
+        if (this.failAt === "audit") throw new Error("audit failed");
+        this.audits.push(input);
+      },
+    };
+  }
+
+  private staffSnapshot() {
+    return {
+      issues: this.issues.map((row) => ({ ...row })),
+      history: this.history.map((row) => ({ ...row })),
+      audits: this.audits.map((row) => ({ ...row })),
+      assignments: this.assignments.map((row) => ({ ...row })),
+      comments: this.comments.map((row) => ({ ...row })),
+    };
+  }
+
+  private restoreStaff(snapshot: ReturnType<MemoryIssueStore["staffSnapshot"]>) {
+    this.issues.splice(0, this.issues.length, ...snapshot.issues);
+    this.history.splice(0, this.history.length, ...snapshot.history);
+    this.audits.splice(0, this.audits.length, ...snapshot.audits);
+    this.assignments.splice(0, this.assignments.length, ...snapshot.assignments);
+    this.comments.splice(0, this.comments.length, ...snapshot.comments);
   }
 
   private database(): ReportDatabase {
@@ -192,7 +411,7 @@ export class MemoryIssueStore implements IssueStore {
         },
         create: async ({ data }) => {
           const id = randomUUID();
-          this.issues.push({ ...data, id, deletedAt: null });
+          this.issues.push({ ...data, id, deletedAt: null, resolvedAt: null, closedAt: null });
           return { id };
         },
       },

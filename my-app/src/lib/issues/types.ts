@@ -22,6 +22,19 @@ export type StatusHistoryEntry = {
   createdAt: Date;
 };
 
+export type IssueCommentView = {
+  id: string;
+  body: string;
+  createdAt: Date;
+  authorName: string;
+};
+
+export type DepartmentAssignment = {
+  assigneeId: string | null;
+  assigneeName: string | null;
+  note: string | null;
+};
+
 export type IssueDetail = {
   id: string;
   title: string;
@@ -39,6 +52,11 @@ export type IssueDetail = {
     longitude: string | null;
   };
   history: StatusHistoryEntry[];
+  comments: IssueCommentView[];
+};
+
+export type DepartmentIssue = IssueDetail & {
+  assignment: DepartmentAssignment | null;
 };
 
 export type IssueCategoryOption = {

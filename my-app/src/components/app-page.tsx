@@ -20,6 +20,8 @@ export function AppPage({
           {" · "}
           <Link href="/my-issues">My reports</Link>
           {" · "}
+          <Link href="/department">Department</Link>
+          {" · "}
           <Link href="/account">Account</Link>
         </nav>
         <h1 className="mt-2 text-page-title font-semibold">{title}</h1>

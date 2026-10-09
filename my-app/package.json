@@ -12,7 +12,8 @@
     "db:validate": "prisma validate",
     "db:seed-roles": "tsx prisma/seed-roles.ts",
     "db:seed-categories": "tsx prisma/seed-categories.ts",
-    "test": "tsx --test src/lib/auth/password.test.ts src/lib/auth/service.test.ts src/lib/auth/email.test.ts src/lib/auth/rate-limit.test.ts src/lib/auth/google.test.ts src/lib/auth/security.test.ts src/lib/issues/issues.test.ts"
+    "db:seed-transitions": "tsx prisma/seed-transitions.ts",
+    "test": "tsx --test src/lib/auth/password.test.ts src/lib/auth/service.test.ts src/lib/auth/email.test.ts src/lib/auth/rate-limit.test.ts src/lib/auth/google.test.ts src/lib/auth/security.test.ts src/lib/issues/issues.test.ts src/lib/issues/staff.test.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

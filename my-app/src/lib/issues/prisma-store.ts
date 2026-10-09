@@ -96,6 +96,16 @@ export function createPrismaIssueStore(): IssueStore {
               createdAt: true,
             },
           },
+          comments: {
+            where: { deletedAt: null },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            select: {
+              id: true,
+              body: true,
+              createdAt: true,
+              author: { select: { name: true } },
+            },
+          },
         },
       });
       if (!issue) return null;
@@ -116,6 +126,12 @@ export function createPrismaIssueStore(): IssueStore {
           longitude: decimalText(issue.location.longitude),
         },
         history: issue.statusHistory,
+        comments: issue.comments.map((comment) => ({
+          id: comment.id,
+          body: comment.body,
+          createdAt: comment.createdAt,
+          authorName: comment.author.name,
+        })),
       };
     },
   };

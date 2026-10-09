@@ -44,3 +44,26 @@ export const FIELD_LONGITUDE =
   "Enter a longitude from -180 to 180 with at most 6 decimal places.";
 
 export const FIELD_CONTROL = "Remove hidden characters from this field.";
+
+export const STAFF_SIGN_IN =
+  "Sign in with a department staff account to open the queue.";
+
+export const STAFF_FORBIDDEN =
+  "This account does not have an active department assignment.";
+
+export const STAFF_UNAVAILABLE = "The department queue could not be loaded.";
+
+export const STAFF_SAVE_FAILED = "The update could not be saved. Try again.";
+
+export const STAFF_TRANSITION = "That status change is not permitted.";
+
+export const STAFF_REASON = "Enter a reason for this status change.";
+
+export const STAFF_ASSIGNEE =
+  "Choose a member of your department, or leave the report with the department.";
+
+export const STAFF_COMMENT = "Enter a comment between 1 and 2000 characters.";
+
+export const STAFF_NOT_AVAILABLE = "This report is not available to your department.";
+
+export const STAFF_RATE_LIMITED = "Too many department updates were submitted. Wait and try again.";
