@@ -7,6 +7,7 @@ import {
   ISSUE_SAVE_FAILED,
   ISSUE_SIGN_IN,
 } from "@/lib/issues/messages";
+import type { PersistImage } from "@/lib/issues/image-rules";
 import type { IssueStore } from "@/lib/issues/store";
 import { ISSUE_PAGE_SIZE, type IssueDetail, type IssueSummary } from "@/lib/issues/types";
 import {
@@ -45,6 +46,7 @@ export async function createCitizenIssue(
   store: IssueStore,
   now: Date,
   ipAddress: string | null,
+  images: PersistImage[] = [],
 ): Promise<IssueWriteResult> {
   if (!access) return { ok: false, message: ISSUE_SIGN_IN, fieldErrors: {} };
   if (!hasCapability(access.capabilities, Capability.accountSelf)) {
@@ -61,6 +63,7 @@ export async function createCitizenIssue(
     reporterId: access.userId,
     now,
     ipAddress,
+    images,
   });
   if (!written.ok && written.reason === "category") {
     return {

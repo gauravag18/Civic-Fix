@@ -1,8 +1,14 @@
-import type { IssueStatus } from "@/generated/prisma/enums";
+import type { IssueStatus, NotificationType } from "@/generated/prisma/enums";
+import {
+  assignmentNotification,
+  commentNotification,
+  statusNotification,
+} from "@/lib/notifications/copy";
 
 export type StaffIssueRecord = {
   id: string;
   reporterId: string;
+  title: string;
   status: IssueStatus;
   deletedAt: Date | null;
   createdAt: Date;
@@ -68,6 +74,15 @@ export type StaffTx = {
     ipAddress: string | null;
     createdAt: Date;
   }): Promise<void>;
+  addNotification(input: {
+    recipientId: string;
+    type: NotificationType;
+    title: string;
+    body: string;
+    issueId: string;
+    commentId: string | null;
+    createdAt: Date;
+  }): Promise<void>;
 };
 
 export type StaffDatabase = {
@@ -78,6 +93,31 @@ const REASON_STATUSES = new Set<IssueStatus>(["REJECTED", "REOPENED"]);
 
 function needsReason(status: IssueStatus): boolean {
   return REASON_STATUSES.has(status);
+}
+
+async function notify(
+  tx: StaffTx,
+  input: {
+    recipientId: string;
+    actorId: string;
+    type: NotificationType;
+    title: string;
+    body: string;
+    issueId: string;
+    commentId: string | null;
+    createdAt: Date;
+  },
+): Promise<void> {
+  if (input.recipientId === input.actorId) return;
+  await tx.addNotification({
+    recipientId: input.recipientId,
+    type: input.type,
+    title: input.title,
+    body: input.body,
+    issueId: input.issueId,
+    commentId: input.commentId,
+    createdAt: input.createdAt,
+  });
 }
 
 async function ownedDepartment(
@@ -177,9 +217,35 @@ export async function writeAssignment(
         departmentId: input.departmentId,
         assigneeId: input.assigneeId,
       },
-      ipAddress: input.ipAddress,
-      createdAt: input.now,
-    });
+        ipAddress: input.ipAddress,
+        createdAt: input.now,
+      });
+    if (input.assigneeId) {
+      const assigned = assignmentNotification();
+      await notify(tx, {
+        recipientId: input.assigneeId,
+        actorId: input.actorId,
+        type: assigned.type,
+        title: assigned.title,
+        body: assigned.body,
+        issueId: issue.id,
+        commentId: null,
+        createdAt: input.now,
+      });
+    }
+    if (claiming && issue.status !== "ASSIGNED") {
+      const status = statusNotification("ASSIGNED");
+      await notify(tx, {
+        recipientId: issue.reporterId,
+        actorId: input.actorId,
+        type: status.type,
+        title: status.title,
+        body: status.body,
+        issueId: issue.id,
+        commentId: null,
+        createdAt: input.now,
+      });
+    }
     return { ok: true };
   });
 }
@@ -232,6 +298,17 @@ export async function writeStatusChange(
       ipAddress: input.ipAddress,
       createdAt: input.now,
     });
+    const notice = statusNotification(input.toStatus);
+    await notify(tx, {
+      recipientId: owned.issue.reporterId,
+      actorId: input.actorId,
+      type: notice.type,
+      title: notice.title,
+      body: notice.body,
+      issueId: owned.issue.id,
+      commentId: null,
+      createdAt: input.now,
+    });
     return { ok: true };
   });
 }
@@ -263,6 +340,17 @@ export async function writeComment(
       entityId: comment.id,
       metadata: { issueId: owned.issue.id },
       ipAddress: input.ipAddress,
+      createdAt: input.now,
+    });
+    const notice = commentNotification();
+    await notify(tx, {
+      recipientId: owned.issue.reporterId,
+      actorId: input.actorId,
+      type: notice.type,
+      title: notice.title,
+      body: notice.body,
+      issueId: owned.issue.id,
+      commentId: comment.id,
       createdAt: input.now,
     });
     return { ok: true };

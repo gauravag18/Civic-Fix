@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { NotificationLink } from "@/components/notification-link";
 
 export function AppPage({
   title,
@@ -23,6 +24,7 @@ export function AppPage({
           <Link href="/department">Department</Link>
           {" · "}
           <Link href="/account">Account</Link>
+          <NotificationLink />
         </nav>
         <h1 className="mt-2 text-page-title font-semibold">{title}</h1>
         {lede ? <p className="mt-2 max-w-prose text-body">{lede}</p> : null}

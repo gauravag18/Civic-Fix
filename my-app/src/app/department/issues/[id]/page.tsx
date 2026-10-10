@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppPage } from "@/components/app-page";
 import { AssignmentForm, CommentForm, StatusForm } from "@/components/department-forms";
 import { SeverityMark, StatusMark } from "@/components/issue-mark";
+import { IssuePhotos } from "@/components/issue-photos";
 import { formatWhen, statusLabel } from "@/lib/issues/labels";
 import { STAFF_FORBIDDEN, STAFF_PASSWORD, STAFF_SIGN_IN, STAFF_UNAVAILABLE } from "@/lib/issues/messages";
 import { loadDepartmentIssue } from "@/lib/issues/staff-queries";
@@ -72,6 +73,7 @@ export default async function DepartmentIssuePage({
         <SeverityMark severity={issue.severity} />
       </p>
       <p className="max-w-prose whitespace-pre-wrap text-body">{issue.description}</p>
+      <IssuePhotos images={issue.images} />
       <dl className="border border-border text-small">
         <div className="flex flex-col gap-1 border-b border-border px-3 py-2 sm:flex-row sm:justify-between">
           <dt className="font-semibold">Place</dt>

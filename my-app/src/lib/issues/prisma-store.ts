@@ -106,6 +106,11 @@ export function createPrismaIssueStore(): IssueStore {
               author: { select: { name: true } },
             },
           },
+          images: {
+            where: { deletedAt: null },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            select: { id: true },
+          },
         },
       });
       if (!issue) return null;
@@ -132,6 +137,7 @@ export function createPrismaIssueStore(): IssueStore {
           createdAt: comment.createdAt,
           authorName: comment.author.name,
         })),
+        images: issue.images,
       };
     },
   };

@@ -87,6 +87,14 @@ npm run admin:bootstrap
 Remove-Item Env:BOOTSTRAP_ADMIN_PASSWORD
 ```
 
+## Photographs and notifications
+
+Citizens can attach up to 4 JPEG, PNG, or WebP photographs, 5 MB each, when submitting a report. The server checks the file bytes, stores them under generated names in `data/issue-images` (or `ISSUE_IMAGE_DIR`), and records only that key on the issue. Files are not in the public web root. A signed-in user can load a photograph only when they reported the issue or can already open it in their department queue. A missing file is shown as unavailable.
+
+That directory lasts across restarts on a normal disk. It is not durable on a host that replaces the filesystem at deploy time. No external storage account is required.
+
+In-app notifications are created in the same database transaction as the department action. A citizen is notified when their report status changes or when staff add a comment. The assigned staff member is notified when a report is assigned to them. Open `/notifications` to read them, mark one as read, or mark all as read. There is no email or live push channel.
+
 ## Project structure
 
 - `src/app/` — App Router routes, layouts, and global styles

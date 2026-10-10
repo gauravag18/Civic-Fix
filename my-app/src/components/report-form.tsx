@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Severity } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { severityLabel } from "@/lib/issues/labels";
 import type { IssueCategoryOption } from "@/lib/issues/types";
 
 const initial: IssueFormState = { message: "", fieldErrors: {} };
+
+type SelectedPhoto = { key: string; file: File; url: string };
 
 const controlClass =
   "h-10 w-full rounded-none border border-input bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20";
@@ -29,7 +31,17 @@ export function ReportForm({ categories }: { categories: IssueCategoryOption[] }
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [locationNote, setLocationNote] = useState("");
+  const [photos, setPhotos] = useState<SelectedPhoto[]>([]);
+  const [photoNote, setPhotoNote] = useState("");
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
   const errors = state.fieldErrors;
+
+  useEffect(() => {
+    return () => {
+      for (const photo of photosRef.current) URL.revokeObjectURL(photo.url);
+    };
+  }, []);
 
   function readDeviceLocation() {
     if (!navigator.geolocation) {
@@ -50,8 +62,39 @@ export function ReportForm({ categories }: { categories: IssueCategoryOption[] }
     );
   }
 
+  function addPhotos(list: FileList | null) {
+    if (!list) return;
+    const next = [...photos];
+    let note = "";
+    for (const file of Array.from(list)) {
+      if (next.length >= 4) {
+        note = "You can attach up to 4 photographs.";
+        break;
+      }
+      next.push({ key: crypto.randomUUID(), file, url: URL.createObjectURL(file) });
+    }
+    setPhotoNote(note);
+    setPhotos(next);
+  }
+
+  function removePhoto(key: string) {
+    setPhotos((current) => {
+      const removed = current.find((photo) => photo.key === key);
+      if (removed) URL.revokeObjectURL(removed.url);
+      return current.filter((photo) => photo.key !== key);
+    });
+    setPhotoNote("");
+  }
+
   return (
-    <form action={formAction} className="flex flex-col gap-5" noValidate>
+    <form
+      action={(formData) => {
+        for (const photo of photos) formData.append("photos", photo.file);
+        formAction(formData);
+      }}
+      className="flex flex-col gap-5"
+      noValidate
+    >
       {state.message ? (
         <p role="alert" className="text-destructive">
           {state.message}
@@ -241,6 +284,48 @@ export function ReportForm({ categories }: { categories: IssueCategoryOption[] }
           </p>
         ) : null}
       </fieldset>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="photos">Photographs</Label>
+        <input
+          id="photos"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          className="w-full border border-input bg-card px-3 py-2 text-base text-foreground file:mr-3 file:border-0 file:bg-transparent file:text-base file:text-foreground"
+          aria-invalid={Boolean(errors.photos)}
+          aria-describedby={errors.photos ? "photos-error" : "photos-hint"}
+          onChange={(event) => {
+            addPhotos(event.target.files);
+            event.target.value = "";
+          }}
+        />
+        <p id="photos-hint" className="text-small text-muted-foreground">
+          Optional. JPEG, PNG, or WebP. Up to 4 photographs, 5 MB each.
+        </p>
+        <FieldError id="photos-error" message={errors.photos} />
+        {photoNote ? (
+          <p role="status" className="text-small">
+            {photoNote}
+          </p>
+        ) : null}
+        {photos.length > 0 ? (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {photos.map((photo) => (
+              <li key={photo.key} className="flex flex-col gap-2">
+                <img
+                  src={photo.url}
+                  alt="Selected photograph"
+                  className="h-24 w-full border border-border object-cover"
+                />
+                <button type="button" className="text-small underline" onClick={() => removePhoto(photo.key)}>
+                  Remove photograph
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
 
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Submitting" : "Submit report"}

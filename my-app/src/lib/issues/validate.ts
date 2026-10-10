@@ -32,6 +32,7 @@ export type IssueFieldErrors = Partial<{
   postalCode: string;
   latitude: string;
   longitude: string;
+  photos: string;
 }>;
 
 export type RawIssueFields = {

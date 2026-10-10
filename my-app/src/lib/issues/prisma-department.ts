@@ -25,6 +25,7 @@ function adapt(tx: PrismaClient): StaffTx {
         select: {
           id: true,
           reporterId: true,
+          title: true,
           status: true,
           deletedAt: true,
           createdAt: true,
@@ -93,6 +94,9 @@ function adapt(tx: PrismaClient): StaffTx {
     },
     async addAudit(input) {
       await tx.auditLog.create({ data: input });
+    },
+    async addNotification(input) {
+      await tx.notification.create({ data: input });
     },
   };
 }
@@ -202,6 +206,11 @@ export function createPrismaDepartmentStore(): DepartmentStore {
               author: { select: { name: true } },
             },
           },
+          images: {
+            where: { deletedAt: null },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            select: { id: true },
+          },
           assignments: {
             where: { endedAt: null },
             take: 1,
@@ -247,6 +256,7 @@ export function createPrismaDepartmentStore(): DepartmentStore {
           createdAt: comment.createdAt,
           authorName: comment.author.name,
         })),
+        images: issue.images,
         assignment: active
           ? {
               assigneeId: active.assigneeId,

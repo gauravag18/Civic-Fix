@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { IssueStatus as IssueStatusValue } from "@/generated/prisma/enums";
+import type { IssueStatus as IssueStatusValue, NotificationType } from "@/generated/prisma/enums";
+import type { PersistImage } from "@/lib/issues/image-rules";
 import { persistReport, type ReportDatabase, type ReportTx } from "@/lib/issues/persist-report";
 import type { IssueStore } from "@/lib/issues/store";
 import type { IssueDetail, IssueSummary, SeverityValue, StatusHistoryEntry } from "@/lib/issues/types";
@@ -72,6 +73,26 @@ type StoredComment = {
   deletedAt: Date | null;
 };
 
+type StoredImage = PersistImage & {
+  id: string;
+  issueId: string;
+  uploadedById: string;
+  createdAt: Date;
+  deletedAt: Date | null;
+};
+
+type StoredNotification = {
+  id: string;
+  recipientId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  issueId: string | null;
+  commentId: string | null;
+  readAt: Date | null;
+  createdAt: Date;
+};
+
 type StoredMember = {
   userId: string;
   departmentId: string;
@@ -96,6 +117,8 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
   readonly audits: StoredAudit[] = [];
   readonly assignments: StoredAssignment[] = [];
   readonly comments: StoredComment[] = [];
+  readonly images: StoredImage[] = [];
+  readonly notifications: StoredNotification[] = [];
   readonly roster: StoredMember[] = [];
   readonly transitions: StoredTransition[] = [];
   reads = 0;
@@ -182,6 +205,13 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
           createdAt: row.createdAt,
           authorName: row.authorName,
         })),
+      images: this.images
+        .filter((row) => row.issueId === issue.id && row.deletedAt === null)
+        .sort(
+          (left, right) =>
+            left.createdAt.getTime() - right.createdAt.getTime() || left.id.localeCompare(right.id),
+        )
+        .map((row) => ({ id: row.id })),
     };
   }
 
@@ -297,6 +327,7 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
         return {
           id: issue.id,
           reporterId: issue.reporterId,
+          title: issue.title,
           status: issue.status,
           deletedAt: issue.deletedAt,
           createdAt: issue.createdAt,
@@ -350,6 +381,9 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
         if (this.failAt === "audit") throw new Error("audit failed");
         this.audits.push(input);
       },
+      addNotification: async (input) => {
+        this.notifications.push({ ...input, id: randomUUID(), readAt: null });
+      },
     };
   }
 
@@ -360,6 +394,7 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
       audits: this.audits.map((row) => ({ ...row })),
       assignments: this.assignments.map((row) => ({ ...row })),
       comments: this.comments.map((row) => ({ ...row })),
+      notifications: this.notifications.map((row) => ({ ...row })),
     };
   }
 
@@ -369,6 +404,7 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
     this.audits.splice(0, this.audits.length, ...snapshot.audits);
     this.assignments.splice(0, this.assignments.length, ...snapshot.assignments);
     this.comments.splice(0, this.comments.length, ...snapshot.comments);
+    this.notifications.splice(0, this.notifications.length, ...snapshot.notifications);
   }
 
   private database(): ReportDatabase {
@@ -436,6 +472,12 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
           return undefined;
         },
       },
+      issueImage: {
+        create: async ({ data }) => {
+          this.images.push({ ...data, id: randomUUID(), deletedAt: null });
+          return undefined;
+        },
+      },
     };
   }
 
@@ -445,6 +487,7 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
       issues: this.issues.map((row) => ({ ...row })),
       history: this.history.map((row) => ({ ...row })),
       audits: this.audits.map((row) => ({ ...row })),
+      images: this.images.map((row) => ({ ...row })),
     };
   }
 
@@ -453,5 +496,6 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
     this.issues.splice(0, this.issues.length, ...snapshot.issues);
     this.history.splice(0, this.history.length, ...snapshot.history);
     this.audits.splice(0, this.audits.length, ...snapshot.audits);
+    this.images.splice(0, this.images.length, ...snapshot.images);
   }
 }

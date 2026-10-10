@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppPage } from "@/components/app-page";
 import { SeverityMark, StatusMark } from "@/components/issue-mark";
+import { IssuePhotos } from "@/components/issue-photos";
 import { formatWhen, statusLabel } from "@/lib/issues/labels";
 import { ISSUE_DETAIL_UNAVAILABLE, ISSUE_SIGN_IN } from "@/lib/issues/messages";
 import { loadMyIssue } from "@/lib/issues/queries";
@@ -59,6 +60,7 @@ export default async function IssuePage({
         <SeverityMark severity={issue.severity} />
       </p>
       <p className="max-w-prose whitespace-pre-wrap text-body">{issue.description}</p>
+      <IssuePhotos images={issue.images} />
       <dl className="border border-border text-small">
         <div className="flex flex-col gap-1 border-b border-border px-3 py-2 sm:flex-row sm:items-baseline sm:justify-between">
           <dt className="font-semibold">Place</dt>

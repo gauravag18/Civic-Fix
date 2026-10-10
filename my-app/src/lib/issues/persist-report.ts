@@ -1,4 +1,5 @@
 import { IssueStatus } from "@/generated/prisma/enums";
+import { isPersistableImage, type PersistImage } from "@/lib/issues/image-rules";
 import { DUPLICATE_WINDOW_MS, type SeverityValue } from "@/lib/issues/types";
 
 export type PersistReportInput = {
@@ -15,6 +16,7 @@ export type PersistReportInput = {
   longitude: string | null;
   now: Date;
   ipAddress: string | null;
+  images?: PersistImage[];
 };
 
 export type PersistReportResult =
@@ -94,6 +96,19 @@ export type ReportTx = {
       };
     }): Promise<unknown>;
   };
+  issueImage: {
+    create(args: {
+      data: {
+        issueId: string;
+        uploadedById: string;
+        storageKey: string;
+        originalFilename: string;
+        mimeType: PersistImage["mimeType"];
+        byteSize: number;
+        createdAt: Date;
+      };
+    }): Promise<unknown>;
+  };
 };
 
 export type ReportDatabase = {
@@ -105,6 +120,11 @@ export async function persistReport(
   input: PersistReportInput,
 ): Promise<PersistReportResult> {
   return db.$transaction(async (tx) => {
+    const images = input.images ?? [];
+    if (images.some((image) => !isPersistableImage(image))) {
+      throw new Error("invalid image");
+    }
+
     const category = await tx.issueCategory.findFirst({
       where: { id: input.categoryId, isActive: true },
       select: { id: true, name: true, code: true },
@@ -172,6 +192,19 @@ export async function persistReport(
         createdAt: input.now,
       },
     });
+    for (const image of images) {
+      await tx.issueImage.create({
+        data: {
+          issueId: issue.id,
+          uploadedById: input.reporterId,
+          storageKey: image.storageKey,
+          originalFilename: image.originalFilename,
+          mimeType: image.mimeType,
+          byteSize: image.byteSize,
+          createdAt: input.now,
+        },
+      });
+    }
     return { ok: true, issueId: issue.id, duplicate: false };
   });
 }

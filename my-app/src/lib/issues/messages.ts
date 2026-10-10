@@ -45,6 +45,8 @@ export const FIELD_LONGITUDE =
 
 export const FIELD_CONTROL = "Remove hidden characters from this field.";
 
+export const FIELD_PHOTOS = "Check the photographs and try again.";
+
 export const STAFF_SIGN_IN =
   "Sign in with a department staff account to open the queue.";
 

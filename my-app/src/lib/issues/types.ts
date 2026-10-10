@@ -53,6 +53,7 @@ export type IssueDetail = {
   };
   history: StatusHistoryEntry[];
   comments: IssueCommentView[];
+  images: { id: string }[];
 };
 
 export type DepartmentIssue = IssueDetail & {

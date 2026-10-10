@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# issue photographs stored outside the public web root
+/data/issue-images/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
