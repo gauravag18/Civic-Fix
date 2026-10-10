@@ -1,6 +1,7 @@
 import { Capability, hasCapability } from "@/lib/auth/capabilities";
 import type { AccountStatus } from "@/generated/prisma/enums";
 import {
+  ADMIN_CONFIRM,
   ADMIN_DEPARTMENT_BLOCKED,
   ADMIN_DUPLICATE,
   ADMIN_FORBIDDEN,
@@ -25,6 +26,8 @@ import type { AdminStore, AdminWriteResult } from "@/lib/admin/store";
 import { ADMIN_PAGE_SIZE, type AdminAccess, type AdminResult } from "@/lib/admin/types";
 import { isUuid } from "@/lib/issues/validate";
 import { pageNumber } from "@/lib/issues/service";
+import { hashPassword, validatePassword } from "@/lib/auth/password";
+import { normalizeEmail, normalizeName } from "@/lib/auth/service";
 
 export function requireAdmin(
   access: AdminAccess,
@@ -421,4 +424,56 @@ export async function revokeAdminRole(
 
 function isAccountStatus(value: string): value is AccountStatus {
   return value === "ACTIVE" || value === "SUSPENDED" || value === "DISABLED";
+}
+
+export async function loadActiveDepartments(access: AdminAccess, store: AdminStore) {
+  return guard(access, async () => ({
+    ok: true as const,
+    departments: await store.listActiveDepartments(),
+  }));
+}
+
+export async function provisionAdminStaff(
+  access: AdminAccess,
+  raw: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+    departmentId: string;
+    confirm: string;
+  },
+  store: AdminStore,
+  now: Date,
+  ipAddress: string | null,
+): Promise<AdminResult & { id?: string }> {
+  const admin = requireAdmin(access);
+  if (!admin.ok) return denied(admin.reason);
+  if (raw.confirm !== "yes") return { ok: false, message: ADMIN_CONFIRM };
+  const email = normalizeEmail(raw.email);
+  const name = normalizeName(raw.name);
+  if (!email || !name) return { ok: false, message: ADMIN_INVALID };
+  if (raw.password !== raw.confirmPassword) {
+    return { ok: false, message: "Enter the same password in both fields." };
+  }
+  const passwordError = validatePassword(raw.password, email, name);
+  if (passwordError) return { ok: false, message: passwordError };
+  const departmentId = raw.departmentId.trim();
+  if (departmentId && !isUuid(departmentId)) return { ok: false, message: ADMIN_MEMBERSHIP_BLOCKED };
+  const passwordHash = await hashPassword(raw.password);
+  try {
+    const written = await store.provisionStaff({
+      actorId: admin.userId,
+      email,
+      name,
+      passwordHash,
+      departmentId: departmentId || null,
+      now,
+      ipAddress,
+    });
+    if (!written.ok) return fromWrite(written);
+    return { ok: true, id: written.id };
+  } catch {
+    return { ok: false, message: ADMIN_SAVE_FAILED };
+  }
 }

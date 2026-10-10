@@ -211,6 +211,18 @@ export class MemoryAuthStore implements AuthStore {
     return "disabled";
   }
 
+  async changePassword(input: {
+    userId: string;
+    passwordHash: string;
+    now: Date;
+  }): Promise<"changed" | "missing"> {
+    const user = await this.findUserById(input.userId);
+    if (!user || !user.passwordHash) return "missing";
+    user.passwordHash = input.passwordHash;
+    user.passwordChangedAt = input.now;
+    return "changed";
+  }
+
   private findOpenToken(rows: TokenRow[], tokenHash: Buffer, now: Date): TokenRow | null {
     return (
       rows.find(

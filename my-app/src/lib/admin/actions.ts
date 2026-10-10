@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
-import { ADMIN_RATE_LIMITED, ADMIN_SAVE_FAILED, ADMIN_SIGN_IN } from "@/lib/admin/messages";
+import { ADMIN_CONFIRM, ADMIN_RATE_LIMITED, ADMIN_SAVE_FAILED, ADMIN_SIGN_IN } from "@/lib/admin/messages";
 import { createPrismaAdminStore } from "@/lib/admin/prisma-store";
 import {
   addAdminMembership,
@@ -16,6 +16,7 @@ import {
   setAdminDepartmentActive,
   updateAdminCategory,
   updateAdminDepartment,
+  provisionAdminStaff,
 } from "@/lib/admin/service";
 import type { AdminAccess } from "@/lib/admin/types";
 import { getAuthorization } from "@/lib/auth/authorization";
@@ -109,6 +110,9 @@ export async function setDepartmentActiveAction(
     const { access, ipAddress } = await adminContext();
     if (!access) return { message: ADMIN_SIGN_IN };
     if (limited(access)) return { message: ADMIN_RATE_LIMITED };
+    if (text(formData, "isActive") === "false" && text(formData, "confirm") !== "yes") {
+      return { message: ADMIN_CONFIRM };
+    }
     const result = await setAdminDepartmentActive(
       access,
       { id, isActive: text(formData, "isActive") === "true" },
@@ -159,6 +163,7 @@ export async function endMembershipAction(
     const { access, ipAddress } = await adminContext();
     if (!access) return { message: ADMIN_SIGN_IN };
     if (limited(access)) return { message: ADMIN_RATE_LIMITED };
+    if (text(formData, "confirm") !== "yes") return { message: ADMIN_CONFIRM };
     const result = await endAdminMembership(
       access,
       text(formData, "membershipId"),
@@ -263,6 +268,7 @@ export async function setAccountStatusAction(
     const { access, ipAddress } = await adminContext();
     if (!access) return { message: ADMIN_SIGN_IN };
     if (limited(access)) return { message: ADMIN_RATE_LIMITED };
+    if (text(formData, "confirm") !== "yes") return { message: ADMIN_CONFIRM };
     const result = await setAdminAccountStatus(
       access,
       { userId, status: text(formData, "status") },
@@ -313,6 +319,7 @@ export async function revokeRoleAction(
     const { access, ipAddress } = await adminContext();
     if (!access) return { message: ADMIN_SIGN_IN };
     if (limited(access)) return { message: ADMIN_RATE_LIMITED };
+    if (text(formData, "confirm") !== "yes") return { message: ADMIN_CONFIRM };
     const result = await revokeAdminRole(
       access,
       { userId, role: text(formData, "role") },
@@ -325,6 +332,38 @@ export async function revokeRoleAction(
   } catch (error) {
     unstable_rethrow(error);
     console.error("Role revoke failed.");
+    return { message: ADMIN_SAVE_FAILED };
+  }
+}
+
+export async function provisionStaffAction(
+  _previous: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  try {
+    const { access, ipAddress } = await adminContext();
+    if (!access) return { message: ADMIN_SIGN_IN };
+    if (limited(access)) return { message: ADMIN_RATE_LIMITED };
+    const result = await provisionAdminStaff(
+      access,
+      {
+        name: text(formData, "name"),
+        email: text(formData, "email"),
+        password: text(formData, "password"),
+        confirmPassword: text(formData, "confirmPassword"),
+        departmentId: text(formData, "departmentId"),
+        confirm: text(formData, "confirm"),
+      },
+      createPrismaAdminStore(),
+      new Date(),
+      ipAddress,
+    );
+    if (!result.ok) return { message: result.message };
+    if (!result.id) return { message: ADMIN_SAVE_FAILED };
+    redirect(`/admin/users/${result.id}?provisioned=1`);
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("Staff provision failed.");
     return { message: ADMIN_SAVE_FAILED };
   }
 }

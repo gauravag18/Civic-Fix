@@ -18,6 +18,7 @@ import {
   createAdminDepartment,
   endAdminMembership,
   grantAdminRole,
+  provisionAdminStaff,
   revokeAdminRole,
   setAdminAccountStatus,
   setAdminCategoryActive,
@@ -27,6 +28,7 @@ import {
 import type { AdminAccess } from "@/lib/admin/types";
 import type { MemoryAdminUser } from "@/lib/admin/store";
 import { capabilitiesFor } from "@/lib/auth/capabilities";
+import { isAdminProvisionedMetadata, isEligible, mustReplaceProvisionedPassword } from "@/lib/auth/store";
 
 const now = new Date("2026-10-09T12:00:00.000Z");
 const adminId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -304,5 +306,174 @@ describe("categories, roles, and bootstrap rules", () => {
     assert.equal(decideBootstrap({ ...ready, hasAdminRole: false }).ok, false);
     assert.equal(decideBootstrap({ ...ready, activeAdminCount: 1 }).ok, false);
     assert.equal(decideBootstrap({ ...ready, userCount: 1 }).ok, false);
+  });
+});
+
+describe("staff provisioning", () => {
+  const password = "a-long-enough-passphrase";
+
+  it("creates department staff without confirming email or granting administrator", async () => {
+    const store = prepared();
+    await createAdminDepartment(admin(), { code: "ROADS", name: "Roads", description: "" }, store, now, null);
+    const departmentId = store.departments[0]?.id ?? "";
+    const created = await provisionAdminStaff(
+      admin(),
+      {
+        name: "Sam Staff",
+        email: "Sam.Staff@Example.com",
+        password,
+        confirmPassword: password,
+        departmentId,
+        confirm: "yes",
+      },
+      store,
+      now,
+      null,
+    );
+    assert.equal(created.ok, true);
+    const staffUser = store.users.find((user) => user.email === "sam.staff@example.com");
+    assert.ok(staffUser);
+    assert.equal(staffUser.emailVerifiedAt, null);
+    assert.equal(staffUser.adminProvisioned, true);
+    assert.deepEqual(staffUser.roles, ["DEPARTMENT_STAFF"]);
+    assert.equal(store.memberships.some((row) => row.userId === staffUser.id && row.endedAt === null), true);
+    const audit = store.audits.find((row) => row.action === "staff.provision");
+    assert.deepEqual(audit?.metadata, {
+      activation: "admin-activated",
+      emailVerified: "false",
+      role: "DEPARTMENT_STAFF",
+      departmentId,
+    });
+    assert.equal(JSON.stringify(audit).includes(password), false);
+    const credential = store.credentials.find((row) => row.userId === staffUser.id);
+    assert.equal(credential?.passwordHash.startsWith("$argon2id$"), true);
+    assert.equal(credential?.passwordHash.includes(password), false);
+    assert.equal(isAdminProvisionedMetadata(audit?.metadata), true);
+    assert.equal(
+      isEligible({
+        id: staffUser.id,
+        email: staffUser.email,
+        name: staffUser.name,
+        accountStatus: "ACTIVE",
+        disabledAt: null,
+        emailVerifiedAt: null,
+        passwordHash: credential?.passwordHash ?? null,
+        passwordChangedAt: now,
+        passwordCreatedAt: now,
+        adminProvisioned: true,
+      }),
+      true,
+    );
+    assert.equal(
+      isEligible({
+        id: citizenId,
+        email: "cara@example.com",
+        name: "Cara Citizen",
+        accountStatus: "ACTIVE",
+        disabledAt: null,
+        emailVerifiedAt: null,
+        passwordHash: "hash",
+        passwordChangedAt: now,
+      }),
+      false,
+    );
+    assert.equal(
+      mustReplaceProvisionedPassword({
+        id: staffUser.id,
+        email: staffUser.email,
+        name: staffUser.name,
+        accountStatus: "ACTIVE",
+        disabledAt: null,
+        emailVerifiedAt: null,
+        passwordHash: credential?.passwordHash ?? null,
+        passwordChangedAt: now,
+        passwordCreatedAt: now,
+        adminProvisioned: true,
+      }),
+      true,
+    );
+  });
+
+  it("refuses an unconfirmed, duplicate, or invalid staff provision", async () => {
+    const store = prepared();
+    const unconfirmed = await provisionAdminStaff(
+      admin(),
+      {
+        name: "Sam Staff",
+        email: "sam.staff@example.com",
+        password,
+        confirmPassword: password,
+        departmentId: "",
+        confirm: "",
+      },
+      store,
+      now,
+      null,
+    );
+    assert.equal(unconfirmed.ok, false);
+    assert.equal(store.users.some((user) => user.email === "sam.staff@example.com"), false);
+    const created = await provisionAdminStaff(
+      admin(),
+      {
+        name: "Sam Staff",
+        email: "sam.staff@example.com",
+        password,
+        confirmPassword: password,
+        departmentId: "",
+        confirm: "yes",
+      },
+      store,
+      now,
+      null,
+    );
+    assert.equal(created.ok, true);
+    const duplicate = await provisionAdminStaff(
+      admin(),
+      {
+        name: "Sam Staff",
+        email: "sam.staff@example.com",
+        password,
+        confirmPassword: password,
+        departmentId: "",
+        confirm: "yes",
+      },
+      store,
+      now,
+      null,
+    );
+    assert.equal(duplicate.ok, false);
+    const before = store.users.length;
+    const missingDepartment = await provisionAdminStaff(
+      admin(),
+      {
+        name: "Other Staff",
+        email: "other.staff@example.com",
+        password,
+        confirmPassword: password,
+        departmentId: "99999999-9999-4999-8999-999999999999",
+        confirm: "yes",
+      },
+      store,
+      now,
+      null,
+    );
+    assert.equal(missingDepartment.ok, false);
+    assert.equal(store.users.length, before);
+    const forbidden = await provisionAdminStaff(
+      { userId: citizenId, capabilities: capabilitiesFor(["CITIZEN"], null) },
+      {
+        name: "Other Staff",
+        email: "other.staff@example.com",
+        password,
+        confirmPassword: password,
+        departmentId: "",
+        confirm: "yes",
+      },
+      store,
+      now,
+      null,
+    );
+    assert.equal(forbidden.ok, false);
+    assert.equal(store.users.length, before);
   });
 });

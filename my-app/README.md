@@ -56,7 +56,9 @@ npm run db:seed-transitions
 
 That script upserts eight status pairs. A later run does not change an existing pair and does not delete any other pair. `REJECTED` and `REOPENED` are not included.
 
-Before a staff account can use the queue, an administrator still has to create a department, grant the `DEPARTMENT_STAFF` role, and add an active membership for a verified user. Registration cannot do that while email delivery is unconfigured.
+Before a staff account can use the queue, an administrator creates a department at `/admin/departments/new`, then provisions staff at `/admin/users/new` or adds an existing eligible staff member from the department page. The application does not create departments, staff, or memberships during build, startup, or seeding.
+
+Staff provisioning does not confirm the email address and does not set `emailVerifiedAt`. The audit action `staff.provision` records `activation: admin-activated` and `emailVerified: false`. That audit is the only reason the account can sign in before email confirmation. Public registration still requires the email verification flow. The account receives `DEPARTMENT_STAFF` only. There is no database field for a mandatory password change, so the initial password is detected by `passwordChangedAt` still matching credential creation time. The staff member must replace it at `/account/password` before `/department` opens. The administrator has to deliver the initial password through a separate secure channel. The password is not stored in the page, the URL, or the logs.
 
 ## Administration
 

@@ -17,6 +17,7 @@ function accessFrom(
     userId: authorization.userId,
     departmentId: authorization.departmentId,
     capabilities: authorization.capabilities,
+    mustChangePassword: authorization.mustChangePassword,
   };
 }
 

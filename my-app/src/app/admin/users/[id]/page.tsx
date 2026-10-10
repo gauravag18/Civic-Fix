@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AccountStatusForm, GrantRoleForm, RevokeRoleForm } from "@/components/admin-forms";
 import { AdminDenied, AdminPage } from "@/components/admin-page";
+import { ADMIN_STAFF_READY } from "@/lib/admin/messages";
 import { loadAdminUser } from "@/lib/admin/queries";
 import { ROLE_CODES, type RoleCode } from "@/lib/auth/roles";
 import { formatWhen } from "@/lib/issues/labels";
@@ -12,26 +13,35 @@ export default async function UserDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; provisioned?: string }>;
 }) {
   const { id } = await params;
-  const saved = (await searchParams).saved;
+  const query = await searchParams;
   const result = await loadAdminUser(id);
 
   return (
     <AdminPage title={result.ok ? result.user.name : "User"}>
       {!result.ok ? <AdminDenied reason={result.reason} /> : null}
-      {result.ok ? <UserRecord saved={saved} user={result.user} viewerId={result.viewerId} /> : null}
+      {result.ok ? (
+        <UserRecord
+          saved={query.saved}
+          provisioned={query.provisioned}
+          user={result.user}
+          viewerId={result.viewerId}
+        />
+      ) : null}
     </AdminPage>
   );
 }
 
 function UserRecord({
   saved,
+  provisioned,
   user,
   viewerId,
 }: {
   saved: string | undefined;
+  provisioned: string | undefined;
   user: {
     id: string;
     name: string;
@@ -42,6 +52,7 @@ function UserRecord({
     departmentId: string | null;
     emailVerifiedAt: Date | null;
     disabledAt: Date | null;
+    activation: "email" | "admin" | "pending";
   };
   viewerId: string;
 }) {
@@ -50,6 +61,7 @@ function UserRecord({
   return (
     <>
       {saved ? <p role="status">Saved.</p> : null}
+      {provisioned ? <p role="status">{ADMIN_STAFF_READY}</p> : null}
       <p className="text-small">
         <Link href="/admin/users">All users</Link>
       </p>
@@ -74,6 +86,16 @@ function UserRecord({
             ) : (
               "Not verified"
             )}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
+          <dt className="font-semibold">Activation</dt>
+          <dd>
+            {user.activation === "admin"
+              ? "Admin-provisioned"
+              : user.activation === "email"
+                ? "Email confirmation"
+                : "Waiting for email confirmation"}
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-4 px-3 py-2">

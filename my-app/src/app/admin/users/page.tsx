@@ -4,6 +4,12 @@ import { loadAdminUsers } from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";
 
+function activationLabel(activation: "email" | "admin" | "pending"): string {
+  if (activation === "admin") return "Admin-provisioned";
+  if (activation === "email") return "Email confirmed";
+  return "Email not confirmed";
+}
+
 export default async function UsersPage({
   searchParams,
 }: {
@@ -19,6 +25,9 @@ export default async function UsersPage({
       {!result.ok ? <AdminDenied reason={result.reason} /> : null}
       {result.ok ? (
         <>
+          <p className="text-small">
+            <Link href="/admin/users/new">Provision staff</Link>
+          </p>
           <SearchForm action="/admin/users" query={query} />
           {result.total === 0 ? <p>No users match this search.</p> : null}
           {result.total > 0 ? (
@@ -32,6 +41,8 @@ export default async function UsersPage({
                     {user.email}
                     {" · "}
                     {user.accountStatus}
+                    {" · "}
+                    {activationLabel(user.activation)}
                     {" · "}
                     {user.roles.join(", ") || "No roles"}
                     {user.departmentName ? ` · ${user.departmentName}` : ""}

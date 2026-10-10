@@ -24,10 +24,18 @@ export default async function AccountPage() {
               <dd>{authorization.email}</dd>
             </div>
           </dl>
+          {authorization.mustChangePassword ? (
+            <p role="status">
+              Change the initial password before opening the department queue.{" "}
+              <Link href="/account/password">Change password</Link>
+            </p>
+          ) : null}
           <p className="text-small">
             <Link href="/report">Report an issue</Link>
             {" · "}
             <Link href="/my-issues">My reports</Link>
+            {" · "}
+            <Link href="/account/password">Change password</Link>
             {hasCapability(authorization.capabilities, Capability.departmentWork) ? (
               <>
                 {" · "}

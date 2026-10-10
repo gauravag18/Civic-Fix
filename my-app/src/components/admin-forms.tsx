@@ -11,6 +11,7 @@ import {
   createDepartmentAction,
   endMembershipAction,
   grantRoleAction,
+  provisionStaffAction,
   revokeRoleAction,
   setAccountStatusAction,
   setCategoryActiveAction,
@@ -112,6 +113,12 @@ export function ActiveToggleForm({
       <FormAlert message={state.message} />
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="isActive" value={isActive ? "false" : "true"} />
+      {isActive ? (
+        <label className="flex items-start gap-2 text-small">
+          <input type="checkbox" name="confirm" value="yes" required className="mt-1" />
+          <span>I confirm deactivation. Open memberships and assignments must already be cleared.</span>
+        </label>
+      ) : null}
       <Button type="submit" variant="outline" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Saving" : isActive ? "Deactivate" : "Activate"}
       </Button>
@@ -167,6 +174,10 @@ export function MembershipEndForm({
       <FormAlert message={state.message} />
       <input type="hidden" name="departmentId" value={departmentId} />
       <input type="hidden" name="membershipId" value={membershipId} />
+      <label className="mb-2 flex items-start gap-2 text-small">
+        <input type="checkbox" name="confirm" value="yes" required className="mt-1" />
+        <span>I confirm ending this membership. Open assignments stay with the department.</span>
+      </label>
       <Button type="submit" variant="outline" disabled={pending}>
         {pending ? "Saving" : "End membership"}
       </Button>
@@ -255,6 +266,10 @@ export function AccountStatusForm({
           <option value="DISABLED">Disabled</option>
         </select>
       </div>
+      <label className="flex items-start gap-2 text-small">
+        <input type="checkbox" name="confirm" value="yes" required className="mt-1" />
+        <span>I confirm this account status change.</span>
+      </label>
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Saving" : "Save status"}
       </Button>
@@ -296,8 +311,79 @@ export function RevokeRoleForm({ userId, role }: { userId: string; role: RoleCod
       <FormAlert message={state.message} />
       <input type="hidden" name="userId" value={userId} />
       <input type="hidden" name="role" value={role} />
+      <label className="flex items-start gap-2 text-small">
+        <input type="checkbox" name="confirm" value="yes" required className="mt-1" />
+        <span>I confirm revoking {role}.</span>
+      </label>
       <Button type="submit" variant="outline" disabled={pending}>
         {pending ? "Saving" : "Revoke"}
+      </Button>
+    </form>
+  );
+}
+
+export function StaffProvisionForm({ departments }: { departments: { id: string; name: string }[] }) {
+  const [state, action, pending] = useActionState(provisionStaffAction, initial);
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <FormAlert message={state.message} />
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="staff-name">Name</Label>
+        <Input id="staff-name" name="name" required maxLength={160} autoComplete="name" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="staff-email">Email</Label>
+        <Input id="staff-email" name="email" type="email" required maxLength={320} autoComplete="off" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="staff-password">Initial password</Label>
+        <Input
+          id="staff-password"
+          name="password"
+          type="password"
+          required
+          minLength={12}
+          maxLength={128}
+          autoComplete="new-password"
+        />
+        <p className="text-small text-muted-foreground">
+          12 to 128 characters. The password is not shown again after this form is saved.
+        </p>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="staff-password-confirm">Confirm initial password</Label>
+        <Input
+          id="staff-password-confirm"
+          name="confirmPassword"
+          type="password"
+          required
+          minLength={12}
+          maxLength={128}
+          autoComplete="new-password"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="staff-department">Department</Label>
+        <select id="staff-department" name="departmentId" defaultValue="" className={controlClass}>
+          <option value="">Assign later</option>
+          {departments.map((department) => (
+            <option key={department.id} value={department.id}>
+              {department.name}
+            </option>
+          ))}
+        </select>
+        <p className="text-small text-muted-foreground">
+          Optional. Only an active department can be selected. This grants department staff access, not administrator access.
+        </p>
+      </div>
+      <label className="flex items-start gap-2 text-small">
+        <input type="checkbox" name="confirm" value="yes" required className="mt-1" />
+        <span>
+          I will give this password to the staff member through a separate secure channel. Email is not confirmed by this action.
+        </span>
+      </label>
+      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+        {pending ? "Saving" : "Create staff account"}
       </Button>
     </form>
   );

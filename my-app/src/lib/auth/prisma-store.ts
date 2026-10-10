@@ -2,7 +2,7 @@ import "server-only";
 
 import { getPrismaClient } from "@/lib/prisma";
 import { isRoleCode } from "@/lib/auth/roles";
-import type { AuthStore, RegisterInput, StoredUser } from "@/lib/auth/store";
+import { isAdminProvisionedMetadata, type AuthStore, type RegisterInput, type StoredUser } from "@/lib/auth/store";
 
 function bytes(value: Buffer): Uint8Array<ArrayBuffer> {
   const copy = new Uint8Array(value.byteLength);
@@ -26,7 +26,7 @@ function mapUser(user: {
   accountStatus: StoredUser["accountStatus"];
   disabledAt: Date | null;
   emailVerifiedAt: Date | null;
-  credential: { passwordHash: string; passwordChangedAt: Date } | null;
+  credential: { passwordHash: string; passwordChangedAt: Date; createdAt: Date } | null;
 }): StoredUser {
   return {
     id: user.id,
@@ -37,11 +37,23 @@ function mapUser(user: {
     emailVerifiedAt: user.emailVerifiedAt,
     passwordHash: user.credential?.passwordHash ?? null,
     passwordChangedAt: user.credential?.passwordChangedAt ?? null,
+    passwordCreatedAt: user.credential?.createdAt ?? null,
+    adminProvisioned: false,
   };
 }
 
 export function createPrismaAuthStore(): AuthStore {
   const db = getPrismaClient();
+
+  async function storedUser(user: Parameters<typeof mapUser>[0]): Promise<StoredUser> {
+    const mapped = mapUser(user);
+    const audit = await db.auditLog.findFirst({
+      where: { action: "staff.provision", entityType: "User", entityId: user.id },
+      select: { metadata: true },
+    });
+    mapped.adminProvisioned = isAdminProvisionedMetadata(audit?.metadata);
+    return mapped;
+  }
 
   return {
     async findUserByEmail(email) {
@@ -49,14 +61,14 @@ export function createPrismaAuthStore(): AuthStore {
         where: { email },
         include: { credential: true },
       });
-      return user ? mapUser(user) : null;
+      return user ? storedUser(user) : null;
     },
     async findUserById(id) {
       const user = await db.user.findUnique({
         where: { id },
         include: { credential: true },
       });
-      return user ? mapUser(user) : null;
+      return user ? storedUser(user) : null;
     },
     async registerCitizen(input: RegisterInput) {
       try {
@@ -295,6 +307,35 @@ export function createPrismaAuthStore(): AuthStore {
         });
         return "disabled" as const;
       });
+    },
+    async changePassword(input) {
+      try {
+        return await db.$transaction(async (tx) => {
+          const credential = await tx.userCredential.findUnique({
+            where: { userId: input.userId },
+            select: { id: true },
+          });
+          if (!credential) return "missing" as const;
+          await tx.userCredential.update({
+            where: { userId: input.userId },
+            data: { passwordHash: input.passwordHash, passwordChangedAt: input.now },
+          });
+          await tx.auditLog.create({
+            data: {
+              actorId: input.userId,
+              action: "password.change",
+              entityType: "User",
+              entityId: input.userId,
+              metadata: {},
+              createdAt: input.now,
+            },
+          });
+          return "changed" as const;
+        });
+      } catch {
+        console.error("Password change failed.");
+        return "missing";
+      }
     },
   };
 }

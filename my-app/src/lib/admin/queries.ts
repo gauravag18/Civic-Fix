@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  loadActiveDepartments,
   loadCategories,
   loadCategory,
   loadDashboard,
@@ -45,4 +46,8 @@ export async function loadAdminUsers(query: string, requestedPage: unknown) {
 
 export async function loadAdminUser(id: string) {
   return loadUser(await access(), id, createPrismaAdminStore());
+}
+
+export async function loadStaffProvision() {
+  return loadActiveDepartments(await access(), createPrismaAdminStore());
 }

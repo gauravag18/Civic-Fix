@@ -102,6 +102,27 @@ describe("authentication service", () => {
     assert.equal(LOGIN_FAILURE.length > 0, true);
   });
 
+  it("accepts admin-provisioned staff without treating the email as verified", async () => {
+    const store = new MemoryAuthStore();
+    const stored = await hashPassword(password);
+    store.users.push({
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      email: "sam@example.com",
+      name: "Sam Staff",
+      accountStatus: "ACTIVE",
+      disabledAt: null,
+      emailVerifiedAt: null,
+      passwordHash: stored,
+      passwordChangedAt: now,
+      passwordCreatedAt: now,
+      adminProvisioned: true,
+    });
+    const success = await authenticate(store, "sam@example.com", password);
+    assert.equal(success.ok, true);
+    store.users[0].adminProvisioned = false;
+    assert.equal((await authenticate(store, "sam@example.com", password)).ok, false);
+  });
+
   it("rejects expired and reused verification and reset tokens", async () => {
     configuredEnv();
     const store = new MemoryAuthStore();

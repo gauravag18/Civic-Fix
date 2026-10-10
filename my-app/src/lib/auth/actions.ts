@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import {
+  changeOwnPassword,
   registerAccount,
   requestPasswordReset,
   requestVerification,
@@ -9,6 +10,7 @@ import {
   verifyEmail,
 } from "@/lib/auth/service";
 import { createPrismaAuthStore } from "@/lib/auth/prisma-store";
+import { getAuthorization } from "@/lib/auth/authorization";
 import { RATE_LIMITED } from "@/lib/auth/messages";
 import { rateKey, registerLimiter, tokenLimiter } from "@/lib/auth/rate-limit";
 import { clientAddress, trustedProxyHops } from "@/lib/auth/request-security";
@@ -93,6 +95,28 @@ export async function resetPasswordAction(
     {
       token: String(formData.get("token") ?? ""),
       password: String(formData.get("password") ?? ""),
+    },
+    new Date(),
+  );
+}
+
+export async function changePasswordAction(
+  _previous: PublicResult,
+  formData: FormData,
+): Promise<PublicResult> {
+  const authorization = await getAuthorization();
+  if (!authorization) return { error: true, message: "Sign in again before changing the password." };
+  const address = await requestAddress();
+  if (limited("password", address, authorization.userId)) {
+    return { error: true, message: RATE_LIMITED };
+  }
+  return changeOwnPassword(
+    createPrismaAuthStore(),
+    authorization.userId,
+    {
+      currentPassword: String(formData.get("currentPassword") ?? ""),
+      nextPassword: String(formData.get("nextPassword") ?? ""),
+      confirmPassword: String(formData.get("confirmPassword") ?? ""),
     },
     new Date(),
   );

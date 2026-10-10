@@ -23,7 +23,13 @@ export default async function DepartmentsPage({
             <Link href="/admin/departments/new">New department</Link>
           </p>
           <SearchForm action="/admin/departments" query={query} />
-          {result.total === 0 ? <p>No departments match this search.</p> : null}
+          {result.total === 0 ? (
+            <p>
+              {query
+                ? "No departments match this search."
+                : "No departments yet. Create one, then add eligible staff from the department page."}
+            </p>
+          ) : null}
           {result.total > 0 ? (
             <ol className="flex flex-col gap-3">
               {result.items.map((department) => (

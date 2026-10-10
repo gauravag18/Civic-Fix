@@ -6,6 +6,7 @@ import {
   STAFF_COMMENT,
   STAFF_FORBIDDEN,
   STAFF_NOT_AVAILABLE,
+  STAFF_PASSWORD,
   STAFF_REASON,
   STAFF_SAVE_FAILED,
   STAFF_SIGN_IN,
@@ -26,6 +27,7 @@ export type DepartmentAccess = {
   userId: string;
   departmentId: string | null;
   capabilities: ReadonlySet<string>;
+  mustChangePassword?: boolean;
 } | null;
 
 export type QueueKind = "assigned" | "unassigned";
@@ -55,12 +57,19 @@ export function claimDepartmentUpdate(
 
 function requireStaff(
   access: DepartmentAccess,
-): { ok: true; userId: string; departmentId: string } | { ok: false; reason: "signed-out" | "forbidden" } {
+): { ok: true; userId: string; departmentId: string } | { ok: false; reason: "signed-out" | "forbidden" | "password" } {
   if (!access) return { ok: false, reason: "signed-out" };
+  if (access.mustChangePassword) return { ok: false, reason: "password" };
   if (!access.departmentId || !hasCapability(access.capabilities, Capability.departmentWork)) {
     return { ok: false, reason: "forbidden" };
   }
   return { ok: true, userId: access.userId, departmentId: access.departmentId };
+}
+
+function accessMessage(reason: "signed-out" | "forbidden" | "password"): string {
+  if (reason === "signed-out") return STAFF_SIGN_IN;
+  if (reason === "password") return STAFF_PASSWORD;
+  return STAFF_FORBIDDEN;
 }
 
 function cleanOptional(value: string, max: number): string | null | "invalid" {
@@ -107,7 +116,7 @@ export async function listDepartmentQueue(
   store: DepartmentStore,
 ): Promise<
   | { ok: true; page: number; pageSize: number; total: number; items: IssueSummary[] }
-  | { ok: false; reason: "signed-out" | "forbidden" | "unavailable" }
+  | { ok: false; reason: "signed-out" | "forbidden" | "password" | "unavailable" }
 > {
   const staff = requireStaff(access);
   if (!staff.ok) return staff;
@@ -137,7 +146,7 @@ export async function getDepartmentIssue(
       transitions: IssueStatusValue[];
       members: { id: string; name: string }[];
     }
-  | { ok: false; reason: "signed-out" | "forbidden" | "missing" | "unavailable" }
+  | { ok: false; reason: "signed-out" | "forbidden" | "password" | "missing" | "unavailable" }
 > {
   const staff = requireStaff(access);
   if (!staff.ok) return staff;
@@ -164,7 +173,7 @@ export async function assignDepartmentIssue(
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const staff = requireStaff(access);
   if (!staff.ok) {
-    return { ok: false, message: staff.reason === "signed-out" ? STAFF_SIGN_IN : STAFF_FORBIDDEN };
+    return { ok: false, message: accessMessage(staff.reason) };
   }
   if (!isUuid(raw.issueId)) return { ok: false, message: STAFF_TRANSITION };
   const note = cleanOptional(raw.note, 500);
@@ -196,7 +205,7 @@ export async function changeDepartmentStatus(
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const staff = requireStaff(access);
   if (!staff.ok) {
-    return { ok: false, message: staff.reason === "signed-out" ? STAFF_SIGN_IN : STAFF_FORBIDDEN };
+    return { ok: false, message: accessMessage(staff.reason) };
   }
   const toStatus = raw.toStatus;
   if (!isUuid(raw.issueId) || !isStatus(toStatus)) {
@@ -229,7 +238,7 @@ export async function commentOnDepartmentIssue(
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const staff = requireStaff(access);
   if (!staff.ok) {
-    return { ok: false, message: staff.reason === "signed-out" ? STAFF_SIGN_IN : STAFF_FORBIDDEN };
+    return { ok: false, message: accessMessage(staff.reason) };
   }
   if (!isUuid(raw.issueId)) return { ok: false, message: STAFF_COMMENT };
   const body = cleanComment(raw.body);

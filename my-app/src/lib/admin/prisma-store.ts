@@ -7,6 +7,7 @@ import { deactivationBlock, removesLastAdmin } from "@/lib/admin/rules";
 import type { AdminStore, AdminWriteResult } from "@/lib/admin/store";
 import { ISSUE_STATUSES } from "@/lib/admin/types";
 import { isRoleCode } from "@/lib/auth/roles";
+import { isAdminProvisionedMetadata } from "@/lib/auth/store";
 
 function duplicate(error: unknown): boolean {
   return (
@@ -55,6 +56,17 @@ async function countedAdmins(tx: PrismaClient): Promise<number> {
 export function createPrismaAdminStore(): AdminStore {
   const prisma = getPrismaClient();
   const txClient = (tx: unknown) => tx as PrismaClient;
+
+  async function provisionedIds(ids: string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    const rows = await prisma.auditLog.findMany({
+      where: { action: "staff.provision", entityType: "User", entityId: { in: ids } },
+      select: { entityId: true, metadata: true },
+    });
+    return new Set(
+      rows.filter((row) => isAdminProvisionedMetadata(row.metadata)).map((row) => row.entityId),
+    );
+  }
 
   return {
     async counts() {
@@ -168,11 +180,16 @@ export function createPrismaAdminStore(): AdminStore {
         select: { id: true },
       });
       if (!department) return [];
+      const provisionRows = await prisma.auditLog.findMany({
+        where: { action: "staff.provision", entityType: "User" },
+        select: { entityId: true },
+      });
+      const activated = await provisionedIds(provisionRows.map((row) => row.entityId));
       const rows = await prisma.user.findMany({
         where: {
           accountStatus: "ACTIVE",
           disabledAt: null,
-          emailVerifiedAt: { not: null },
+          OR: [{ emailVerifiedAt: { not: null } }, { id: { in: [...activated] } }],
           rolesReceived: { some: { revokedAt: null, role: { code: "DEPARTMENT_STAFF" } } },
           departmentMemberships: { none: { endedAt: null } },
         },
@@ -293,12 +310,16 @@ export function createPrismaAdminStore(): AdminStore {
             where: { id: input.departmentId, isActive: true },
             select: { id: true },
           });
+          const provision = await db.auditLog.findFirst({
+            where: { action: "staff.provision", entityType: "User", entityId: input.userId },
+            select: { metadata: true },
+          });
           const user = await db.user.findFirst({
             where: {
               id: input.userId,
               accountStatus: "ACTIVE",
               disabledAt: null,
-              emailVerifiedAt: { not: null },
+              ...(isAdminProvisionedMetadata(provision?.metadata) ? {} : { emailVerifiedAt: { not: null } }),
               rolesReceived: { some: { revokedAt: null, role: { code: "DEPARTMENT_STAFF" } } },
               departmentMemberships: { none: { endedAt: null } },
             },
@@ -526,10 +547,11 @@ export function createPrismaAdminStore(): AdminStore {
           select: userSelect,
         }),
       ]);
+      const activated = await provisionedIds(rows.map((row) => row.id));
       return {
         total,
         items: rows.map((row) => {
-          const user = mapUser(row);
+          const user = mapUser(row, activated.has(row.id));
           return {
             id: user.id,
             email: user.email,
@@ -537,6 +559,7 @@ export function createPrismaAdminStore(): AdminStore {
             accountStatus: user.accountStatus,
             roles: user.roles,
             departmentName: user.departmentName,
+            activation: user.activation,
           };
         }),
       };
@@ -545,7 +568,8 @@ export function createPrismaAdminStore(): AdminStore {
     async getUser(id) {
       const user = await prisma.user.findUnique({ where: { id }, select: userSelect });
       if (!user) return null;
-      return mapUser(user);
+      const activated = await provisionedIds([user.id]);
+      return mapUser(user, activated.has(user.id));
     },
 
     async setAccountStatus(input) {
@@ -671,6 +695,83 @@ export function createPrismaAdminStore(): AdminStore {
         return { ok: false, reason: "unavailable" };
       }
     },
+
+    async listActiveDepartments() {
+      return prisma.department.findMany({
+        where: { isActive: true },
+        orderBy: { name: "asc" },
+        take: 200,
+        select: { id: true, name: true },
+      });
+    },
+
+    async provisionStaff(input) {
+      try {
+        return await prisma.$transaction(async (tx) => {
+          const db = txClient(tx);
+          const existing = await db.user.findUnique({ where: { email: input.email }, select: { id: true } });
+          if (existing) return { ok: false as const, reason: "duplicate" as const };
+          const role = await db.role.findUnique({ where: { code: "DEPARTMENT_STAFF" }, select: { id: true } });
+          if (!role) return { ok: false as const, reason: "role" as const };
+          const department = input.departmentId
+            ? await db.department.findFirst({
+                where: { id: input.departmentId, isActive: true },
+                select: { id: true },
+              })
+            : null;
+          if (input.departmentId && !department) return { ok: false as const, reason: "membership" as const };
+          const user = await db.user.create({
+            data: {
+              email: input.email,
+              name: input.name,
+              accountStatus: "ACTIVE",
+              createdAt: input.now,
+              credential: {
+                create: {
+                  passwordHash: input.passwordHash,
+                  createdAt: input.now,
+                  passwordChangedAt: input.now,
+                },
+              },
+              rolesReceived: {
+                create: {
+                  roleId: role.id,
+                  assignedById: input.actorId,
+                  assignedAt: input.now,
+                },
+              },
+              ...(department
+                ? {
+                    departmentMemberships: {
+                      create: { departmentId: department.id, startedAt: input.now },
+                    },
+                  }
+                : {}),
+            },
+            select: { id: true },
+          });
+          await audit(db, {
+            actorId: input.actorId,
+            action: "staff.provision",
+            entityType: "User",
+            entityId: user.id,
+            metadata: {
+              activation: "admin-activated",
+              emailVerified: "false",
+              role: "DEPARTMENT_STAFF",
+              departmentId: department?.id ?? "none",
+            },
+            ipAddress: input.ipAddress,
+            now: input.now,
+          });
+          return { ok: true as const, id: user.id };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) {
+        if (duplicate(error)) return { ok: false, reason: "duplicate" };
+        console.error("Staff provision failed.");
+        return { ok: false, reason: "unavailable" };
+      }
+    },
   };
 }
 
@@ -692,16 +793,19 @@ const userSelect = {
   },
 } as const;
 
-function mapUser(user: {
-  id: string;
-  email: string;
-  name: string;
-  accountStatus: "ACTIVE" | "SUSPENDED" | "DISABLED";
-  emailVerifiedAt: Date | null;
-  disabledAt: Date | null;
-  rolesReceived: { role: { code: string } }[];
-  departmentMemberships: { department: { id: string; name: string } }[];
-}) {
+function mapUser(
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    accountStatus: "ACTIVE" | "SUSPENDED" | "DISABLED";
+    emailVerifiedAt: Date | null;
+    disabledAt: Date | null;
+    rolesReceived: { role: { code: string } }[];
+    departmentMemberships: { department: { id: string; name: string } }[];
+  },
+  adminProvisioned: boolean,
+) {
   const roles = user.rolesReceived.map((grant) => grant.role.code).filter(isRoleCode);
   const department = user.departmentMemberships[0]?.department;
   return {
@@ -714,5 +818,6 @@ function mapUser(user: {
     emailVerifiedAt: user.emailVerifiedAt,
     disabledAt: user.disabledAt,
     departmentId: department?.id ?? null,
+    activation: user.emailVerifiedAt ? ("email" as const) : adminProvisioned ? ("admin" as const) : ("pending" as const),
   };
 }

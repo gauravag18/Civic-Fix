@@ -25,3 +25,8 @@ export const ADMIN_LAST = "The last active administrator cannot be removed or lo
 export const ADMIN_ROLE = "That role change is not available.";
 
 export const ADMIN_RATE_LIMITED = "Too many administration changes. Wait and try again.";
+
+export const ADMIN_CONFIRM = "Confirm this change before it is saved.";
+
+export const ADMIN_STAFF_READY =
+  "Staff account created. Email is not confirmed. Give the initial password to this person through a separate secure channel. They must change it after signing in.";

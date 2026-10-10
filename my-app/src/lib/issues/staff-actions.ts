@@ -35,6 +35,7 @@ async function staffContext(): Promise<{
           userId: authorization.userId,
           departmentId: authorization.departmentId,
           capabilities: authorization.capabilities,
+          mustChangePassword: authorization.mustChangePassword,
         }
       : null,
     ipAddress: address === "unknown" ? null : address,

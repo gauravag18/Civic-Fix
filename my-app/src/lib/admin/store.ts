@@ -127,6 +127,16 @@ export type AdminStore = {
     now: Date;
     ipAddress: string | null;
   }): Promise<AdminWriteResult>;
+  listActiveDepartments(): Promise<{ id: string; name: string }[]>;
+  provisionStaff(input: {
+    actorId: string;
+    email: string;
+    name: string;
+    passwordHash: string;
+    departmentId: string | null;
+    now: Date;
+    ipAddress: string | null;
+  }): Promise<AdminWriteResult>;
 };
 
 export type MemoryAudit = {
@@ -145,6 +155,7 @@ export type MemoryAdminUser = {
   disabledAt: Date | null;
   emailVerifiedAt: Date | null;
   roles: RoleCode[];
+  adminProvisioned?: boolean;
 };
 
 export type MemoryDepartment = {

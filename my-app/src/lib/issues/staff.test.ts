@@ -339,4 +339,17 @@ describe("department staff workflow", () => {
     }
     assert.equal(claimDepartmentUpdate(limiter, staffId, 1_020), false);
   });
+
+  it("keeps the department queue closed until a provisioned password is replaced", async () => {
+    const access = staff(staffId, departmentA);
+    assert.ok(access);
+    const result = await listDepartmentQueue(
+      { userId: access.userId, departmentId: access.departmentId, capabilities: access.capabilities, mustChangePassword: true },
+      "assigned",
+      "1",
+      preparedStore(),
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.equal(result.reason, "password");
+  });
 });

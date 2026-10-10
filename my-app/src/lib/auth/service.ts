@@ -10,7 +10,7 @@ import {
   TOKEN_INVALID,
 } from "@/lib/auth/messages";
 import { isRoleCode } from "@/lib/auth/roles";
-import { assessToken, isEligible, sessionUserId, type AuthStore } from "@/lib/auth/store";
+import { assessToken, isEligible, mustReplaceProvisionedPassword, sessionUserId, type AuthStore } from "@/lib/auth/store";
 import {
   RESET_TTL_MS,
   VERIFICATION_TTL_MS,
@@ -236,6 +236,7 @@ export async function authorizationFor(
   roleCodes: string[];
   departmentId: string | null;
   capabilities: ReadonlySet<string>;
+  mustChangePassword: boolean;
 } | null> {
   void untrustedDepartmentId;
   const user = await store.findUserById(userId);
@@ -249,6 +250,7 @@ export async function authorizationFor(
     roleCodes,
     departmentId,
     capabilities: capabilitiesFor(roleCodes, departmentId),
+    mustChangePassword: mustReplaceProvisionedPassword(user),
   };
 }
 
@@ -265,6 +267,37 @@ export async function disableAccount(
   input: { actorUserId: string; targetUserId: string; now: Date },
 ): Promise<"disabled" | "forbidden" | "self" | "missing"> {
   return store.disableAccount(input);
+}
+
+export async function changeOwnPassword(
+  store: AuthStore,
+  userId: string,
+  input: { currentPassword: string; nextPassword: string; confirmPassword: string },
+  now: Date,
+): Promise<PublicResult> {
+  const user = await store.findUserById(userId);
+  if (!user || !isEligible(user) || !user.passwordHash) {
+    return { error: true, message: "Sign in again before changing the password." };
+  }
+  const currentMatches = await verifyPassword(input.currentPassword, user.passwordHash);
+  if (!currentMatches) return { error: true, message: "The current password is incorrect." };
+  if (input.nextPassword !== input.confirmPassword) {
+    return { error: true, message: "Enter the same new password in both fields." };
+  }
+  const passwordError = validatePassword(input.nextPassword, user.email, user.name);
+  if (passwordError) return { error: true, message: passwordError };
+  if (await verifyPassword(input.nextPassword, user.passwordHash)) {
+    return { error: true, message: "Choose a password that is different from the current one." };
+  }
+  const passwordHash = await hashPassword(input.nextPassword);
+  const changed = await store.changePassword({ userId, passwordHash, now });
+  if (changed !== "changed") {
+    return { error: true, message: "The password could not be saved. Try again." };
+  }
+  return {
+    error: false,
+    message: "Password updated. Sign in again with the new password.",
+  };
 }
 
 export { RATE_LIMITED, LOGIN_FAILURE };

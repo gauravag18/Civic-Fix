@@ -9,6 +9,10 @@ export type StoredUser = {
   emailVerifiedAt: Date | null;
   passwordHash: string | null;
   passwordChangedAt: Date | null;
+  passwordCreatedAt?: Date | null;
+  // True only when the staff.provision audit records admin activation.
+  // Public registration never sets this, and emailVerifiedAt stays null.
+  adminProvisioned?: boolean;
 };
 
 export type RegisterInput = {
@@ -76,10 +80,24 @@ export type AuthStore = {
     targetUserId: string;
     now: Date;
   }): Promise<"disabled" | "forbidden" | "self" | "missing">;
+  changePassword(input: {
+    userId: string;
+    passwordHash: string;
+    now: Date;
+  }): Promise<"changed" | "missing">;
 };
 
+export function isAdminProvisionedMetadata(metadata: unknown): boolean {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return false;
+  const value = metadata as Record<string, unknown>;
+  return value.activation === "admin-activated" && value.emailVerified === "false";
+}
+
+// Public accounts must confirm their email. Admin-provisioned staff may sign in
+// while emailVerifiedAt is null. That exception comes only from the provision audit.
 export function isEligible(user: StoredUser): boolean {
-  if (user.accountStatus !== "ACTIVE" || user.disabledAt !== null || user.emailVerifiedAt === null) {
+  const identityAccepted = user.emailVerifiedAt !== null || user.adminProvisioned === true;
+  if (user.accountStatus !== "ACTIVE" || user.disabledAt !== null || !identityAccepted) {
     return false;
   }
   if (user.passwordHash !== null || user.passwordChangedAt !== null) {
@@ -98,6 +116,11 @@ export function assessToken(
     return passwordChangedAtMs === user.passwordChangedAt.getTime() ? "ok" : "blocked";
   }
   return provider === "google" ? "ok" : "blocked";
+}
+
+export function mustReplaceProvisionedPassword(user: StoredUser): boolean {
+  if (user.adminProvisioned !== true || !user.passwordCreatedAt || !user.passwordChangedAt) return false;
+  return user.passwordCreatedAt.getTime() === user.passwordChangedAt.getTime();
 }
 
 export function sessionUserId(

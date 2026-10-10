@@ -21,6 +21,7 @@ export class MemoryAdminStore implements AdminStore {
   readonly issues: MemoryIssue[] = [];
   readonly audits: MemoryAudit[] = [];
   readonly revokedUsers: string[] = [];
+  readonly credentials: { userId: string; passwordHash: string }[] = [];
 
   async counts() {
     const issuesByStatus = ISSUE_STATUSES.map((status) => ({
@@ -281,6 +282,52 @@ export class MemoryAdminStore implements AdminStore {
     return { ok: true as const, id: user.id };
   }
 
+  async listActiveDepartments() {
+    return this.departments
+      .filter((department) => department.isActive)
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .map((department) => ({ id: department.id, name: department.name }));
+  }
+
+  async provisionStaff(input: Parameters<AdminStore["provisionStaff"]>[0]) {
+    if (this.users.some((user) => user.email === input.email)) {
+      return { ok: false as const, reason: "duplicate" as const };
+    }
+    if (!this.roleExists("DEPARTMENT_STAFF")) return { ok: false as const, reason: "role" as const };
+    const department = input.departmentId
+      ? this.departments.find((row) => row.id === input.departmentId && row.isActive)
+      : null;
+    if (input.departmentId && !department) return { ok: false as const, reason: "membership" as const };
+    const id = randomUUID();
+    this.users.push({
+      id,
+      email: input.email,
+      name: input.name,
+      accountStatus: "ACTIVE",
+      disabledAt: null,
+      emailVerifiedAt: null,
+      roles: ["DEPARTMENT_STAFF"],
+      adminProvisioned: true,
+    });
+    this.credentials.push({ userId: id, passwordHash: input.passwordHash });
+    if (department) {
+      this.memberships.push({
+        id: randomUUID(),
+        userId: id,
+        departmentId: department.id,
+        startedAt: input.now,
+        endedAt: null,
+      });
+    }
+    this.audit(input, "staff.provision", "User", id, {
+      activation: "admin-activated",
+      emailVerified: "false",
+      role: "DEPARTMENT_STAFF",
+      departmentId: department?.id ?? "none",
+    });
+    return { ok: true as const, id };
+  }
+
   private summary(user: MemoryAdminUser) {
     const membership = this.memberships.find((row) => row.userId === user.id && row.endedAt === null);
     const department = membership
@@ -293,12 +340,20 @@ export class MemoryAdminStore implements AdminStore {
       accountStatus: user.accountStatus,
       roles: [...user.roles],
       departmentName: department?.name ?? null,
+      activation: this.activation(user),
     };
+  }
+
+  private activation(user: MemoryAdminUser): "email" | "admin" | "pending" {
+    if (user.emailVerifiedAt) return "email";
+    if (user.adminProvisioned) return "admin";
+    return "pending";
   }
 
   private canJoinDepartment(user: MemoryAdminUser, departmentId: string): boolean {
     if (!user.roles.includes("DEPARTMENT_STAFF")) return false;
-    if (user.accountStatus !== "ACTIVE" || user.disabledAt || !user.emailVerifiedAt) return false;
+    if (user.accountStatus !== "ACTIVE" || user.disabledAt) return false;
+    if (!user.emailVerifiedAt && !user.adminProvisioned) return false;
     if (this.memberships.some((row) => row.userId === user.id && row.endedAt === null)) return false;
     return this.departments.some((row) => row.id === departmentId && row.isActive);
   }

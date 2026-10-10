@@ -67,3 +67,6 @@ export const STAFF_COMMENT = "Enter a comment between 1 and 2000 characters.";
 export const STAFF_NOT_AVAILABLE = "This report is not available to your department.";
 
 export const STAFF_RATE_LIMITED = "Too many department updates were submitted. Wait and try again.";
+
+export const STAFF_PASSWORD =
+  "Change the initial password before using the department queue.";
