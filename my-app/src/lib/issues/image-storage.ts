@@ -61,6 +61,18 @@ export async function removeIssueImages(keys: string[], store: ObjectStore | nul
   await store.remove(safe).catch(() => undefined);
 }
 
+/** Reports whether every key was removed. A storage failure leaves the keys for a retry. */
+export async function removeStoredIssueImages(keys: string[], store: ObjectStore | null): Promise<boolean> {
+  if (keys.length === 0) return true;
+  if (!store || keys.some((key) => !isSafeStorageKey(key))) return false;
+  try {
+    await store.remove(keys);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function readIssueImage(key: string, store: ObjectStore | null): Promise<Uint8Array | null> {
   if (!store || !isSafeStorageKey(key)) return null;
   try {

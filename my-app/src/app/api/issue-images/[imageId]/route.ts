@@ -6,14 +6,23 @@ import { canReadIssueImage, downloadName, isAllowedImageMime } from "@/lib/issue
 import { isUuid } from "@/lib/issues/validate";
 import { getPrismaClient } from "@/lib/prisma";
 
+const PRIVATE_CACHE = "private, no-store";
+
+function unavailable(status: 401 | 404): Response {
+  return new Response(null, {
+    status,
+    headers: { "Cache-Control": PRIVATE_CACHE },
+  });
+}
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ imageId: string }> },
 ): Promise<Response> {
   const { imageId } = await context.params;
-  if (!isUuid(imageId)) return new Response(null, { status: 404 });
+  if (!isUuid(imageId)) return unavailable(404);
   const authorization = await getAuthorization();
-  if (!authorization) return new Response(null, { status: 401 });
+  if (!authorization) return unavailable(401);
 
   try {
     const prisma = getPrismaClient();
@@ -37,7 +46,7 @@ export async function GET(
       },
     });
     if (!image || image.issue.deletedAt || !isAllowedImageMime(image.mimeType)) {
-      return new Response(null, { status: 404 });
+      return unavailable(404);
     }
 
     const assignment = image.issue.assignments[0] ?? null;
@@ -60,20 +69,20 @@ export async function GET(
       assignmentDepartmentId: assignment?.departmentId ?? null,
       unassignedClaimable,
     });
-    if (!allowed) return new Response(null, { status: 404 });
+    if (!allowed) return unavailable(404);
 
     const bytes = await readIssueImage(image.storageKey, createIssueImageStore());
-    if (!bytes) return new Response(null, { status: 404 });
+    if (!bytes) return unavailable(404);
     return new Response(Buffer.from(bytes), {
       status: 200,
       headers: {
         "Content-Type": image.mimeType,
         "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "private, no-store",
+        "Cache-Control": PRIVATE_CACHE,
         "Content-Disposition": `inline; filename="${downloadName(image.mimeType)}"`,
       },
     });
   } catch {
-    return new Response(null, { status: 404 });
+    return unavailable(404);
   }
 }

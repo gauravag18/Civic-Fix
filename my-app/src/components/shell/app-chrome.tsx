@@ -171,6 +171,7 @@ const CRUMB_LABELS: Record<string, string> = {
   "/admin/categories/new": "New category",
   "/admin/users": "Users and staff",
   "/admin/users/new": "Provision staff",
+  "/admin/issues": "Delete a report",
   "/admin/analytics": "Analytics",
   "/department/analytics": "Department analytics",
 };

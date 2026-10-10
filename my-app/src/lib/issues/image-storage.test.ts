@@ -5,6 +5,7 @@ import {
   readIssueImage,
   readStorageConfig,
   removeIssueImages,
+  removeStoredIssueImages,
   saveIssueImages,
   type ObjectStore,
 } from "@/lib/issues/image-storage";
@@ -15,6 +16,7 @@ class MemoryObjects implements ObjectStore {
   readonly objects = new Map<string, Uint8Array>();
   readonly removed: string[][] = [];
   failOnPut = 0;
+  failOnRemove = false;
   puts = 0;
 
   async put(object: { key: string; bytes: Uint8Array; mimeType: string }): Promise<void> {
@@ -24,6 +26,7 @@ class MemoryObjects implements ObjectStore {
   }
 
   async remove(keys: string[]): Promise<void> {
+    if (this.failOnRemove) throw new Error("remove failed");
     this.removed.push([...keys]);
     for (const key of keys) this.objects.delete(key);
   }
@@ -84,6 +87,20 @@ describe("issue image storage", () => {
     await removeIssueImages([key, "../other.jpg"], saved);
     assert.equal(await readIssueImage(key, saved), null);
     assert.equal(saved.objects.has(prepared.images[1]?.storageKey ?? ""), true);
+  });
+
+  it("reports storage removal failure without dropping an unsafe key", async () => {
+    const store = new MemoryObjects();
+    const key = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg";
+    assert.equal(await removeStoredIssueImages([], store), true);
+    assert.equal(await removeStoredIssueImages([key], null), false);
+    assert.equal(await removeStoredIssueImages(["../secret.jpg"], store), false);
+    store.failOnPut = 0;
+    store.failOnRemove = true;
+    assert.equal(await removeStoredIssueImages([key], store), false);
+    store.failOnRemove = false;
+    assert.equal(await removeStoredIssueImages([key], store), true);
+    assert.equal(store.objects.has(key), false);
   });
 
   it("allows the reporter or the assigned department and hides everyone else", () => {

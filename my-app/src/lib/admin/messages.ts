@@ -30,3 +30,14 @@ export const ADMIN_CONFIRM = "Confirm this change before it is saved.";
 
 export const ADMIN_STAFF_READY =
   "Staff account created. Email is not confirmed. Give the initial password to this person through a separate secure channel. They must change it after signing in.";
+
+export const DELETE_CONFIRM = "Type the report title exactly to confirm deletion.";
+
+export const DELETE_REASON = "Enter a reason of up to 500 characters.";
+
+export const DELETE_PHOTOS =
+  "The report is hidden, but its photographs could not be removed. Submit again to retry.";
+
+export const DELETE_DONE = "The report is hidden and its photographs were removed from private storage.";
+
+export const DELETE_ALREADY = "This report is already hidden and its photographs were removed.";

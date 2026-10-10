@@ -44,6 +44,7 @@ function linksFor(area: "citizen" | "department" | "admin", staff: boolean, admi
       { href: "/admin/departments", label: "Departments" },
       { href: "/admin/categories", label: "Categories" },
       { href: "/admin/users", label: "Users and staff" },
+      { href: "/admin/issues", label: "Delete a report" },
       { href: "/admin/analytics", label: "Analytics" },
       { href: "/explore", label: "Explore issues" },
       { href: "/notifications", label: "Notifications" },
