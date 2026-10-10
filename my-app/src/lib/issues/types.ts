@@ -66,4 +66,24 @@ export type IssueCategoryOption = {
 };
 
 export const ISSUE_PAGE_SIZE = 10;
+export const PUBLIC_PAGE_SIZE = 10;
+
+export type PublicIssueCard = {
+  id: string;
+  title: string;
+  categoryName: string;
+  locality: string | null;
+  city: string;
+  status: IssueStatusValue;
+  createdAt: Date;
+};
+
+export type PublicSort = "newest" | "updated";
+
+export type PublicListFilters = {
+  q: string;
+  categoryId: string | null;
+  status: IssueStatusValue | null;
+  sort: PublicSort;
+};
 export const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AuthPage } from "@/components/auth-page";
+import { AppPage } from "@/components/app-page";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { getAuthorization } from "@/lib/auth/authorization";
 
@@ -9,7 +9,7 @@ export default async function ChangePasswordPage() {
   const authorization = await getAuthorization();
 
   return (
-    <AuthPage
+    <AppPage
       title="Change password"
       lede="Use the current password. A provisioned staff account must replace the initial password before opening the department queue."
     >
@@ -20,6 +20,6 @@ export default async function ChangePasswordPage() {
           You are not logged in. <Link href="/login">Log in</Link>
         </p>
       )}
-    </AuthPage>
+    </AppPage>
   );
 }

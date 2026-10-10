@@ -3,7 +3,15 @@ import type { IssueStatus as IssueStatusValue, NotificationType } from "@/genera
 import type { PersistImage } from "@/lib/issues/image-rules";
 import { persistReport, type ReportDatabase, type ReportTx } from "@/lib/issues/persist-report";
 import type { IssueStore } from "@/lib/issues/store";
-import type { IssueDetail, IssueSummary, SeverityValue, StatusHistoryEntry } from "@/lib/issues/types";
+import {
+  PUBLIC_PAGE_SIZE,
+  type IssueDetail,
+  type IssueSummary,
+  type PublicIssueCard,
+  type PublicListFilters,
+  type SeverityValue,
+  type StatusHistoryEntry,
+} from "@/lib/issues/types";
 import type { DepartmentStore } from "@/lib/issues/staff-service";
 import type { StaffDatabase, StaffTx } from "@/lib/issues/staff-write";
 
@@ -35,7 +43,9 @@ type StoredIssue = {
   severity: SeverityValue;
   status: IssueStatusValue;
   createdAt: Date;
+  updatedAt: Date;
   deletedAt: Date | null;
+  publishedAt: Date | null;
   resolvedAt: Date | null;
   closedAt: Date | null;
 };
@@ -122,6 +132,7 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
   readonly roster: StoredMember[] = [];
   readonly transitions: StoredTransition[] = [];
   reads = 0;
+  publicReads = 0;
   failAt: "history" | "audit" | null = null;
 
   async createReport(input: Parameters<IssueStore["createReport"]>[0]) {
@@ -212,6 +223,89 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
             left.createdAt.getTime() - right.createdAt.getTime() || left.id.localeCompare(right.id),
         )
         .map((row) => ({ id: row.id })),
+    };
+  }
+
+  async listPublic(filters: PublicListFilters, page: number, pageSize: number) {
+    this.publicReads += 1;
+    const size = Math.min(PUBLIC_PAGE_SIZE, Math.max(1, Math.floor(pageSize)));
+    const safePage = Math.min(1000, Math.max(1, Math.floor(page)));
+    const needle = filters.q.toLocaleLowerCase("en");
+    const rows = this.issues
+      .filter((issue) => issue.publishedAt !== null && issue.deletedAt === null)
+      .filter((issue) => (filters.categoryId ? issue.categoryId === filters.categoryId : true))
+      .filter((issue) => (filters.status ? issue.status === filters.status : true))
+      .filter((issue) => (needle ? issue.title.toLocaleLowerCase("en").includes(needle) : true))
+      .sort((left, right) => {
+        const leftTime = filters.sort === "updated" ? left.updatedAt.getTime() : left.createdAt.getTime();
+        const rightTime = filters.sort === "updated" ? right.updatedAt.getTime() : right.createdAt.getTime();
+        return rightTime - leftTime || right.id.localeCompare(left.id);
+      });
+    const cards = rows.flatMap((issue) => {
+      const card = this.publicCard(issue);
+      return card ? [card] : [];
+    });
+    const start = (safePage - 1) * size;
+    return {
+      ok: true as const,
+      total: cards.length,
+      items: cards.slice(start, start + size),
+    };
+  }
+
+  async getPublic(issueId: string) {
+    this.publicReads += 1;
+    const issue = this.issues.find(
+      (row) => row.id === issueId && row.publishedAt !== null && row.deletedAt === null,
+    );
+    return { ok: true as const, issue: issue ? this.publicCard(issue) : null };
+  }
+
+  async getOwnedPublication(reporterId: string, issueId: string) {
+    const issue = this.issues.find(
+      (row) => row.id === issueId && row.reporterId === reporterId && row.deletedAt === null,
+    );
+    if (!issue) return { ok: false as const, reason: "missing" as const };
+    return { ok: true as const, publishedAt: issue.publishedAt };
+  }
+
+  async setOwnedPublication(input: {
+    reporterId: string;
+    issueId: string;
+    publish: boolean;
+    now: Date;
+    ipAddress: string | null;
+  }) {
+    const issue = this.issues.find(
+      (row) => row.id === input.issueId && row.reporterId === input.reporterId && row.deletedAt === null,
+    );
+    if (!issue) return { ok: false as const, reason: "missing" as const };
+    issue.publishedAt = input.publish ? input.now : null;
+    issue.updatedAt = input.now;
+    this.audits.push({
+      actorId: input.reporterId,
+      action: input.publish ? "issue.published" : "issue.unpublished",
+      entityType: "Issue",
+      entityId: input.issueId,
+      metadata: {},
+      ipAddress: input.ipAddress,
+      createdAt: input.now,
+    });
+    return { ok: true as const, publishedAt: issue.publishedAt };
+  }
+
+  private publicCard(issue: StoredIssue): PublicIssueCard | null {
+    const category = this.categories.find((row) => row.id === issue.categoryId);
+    const location = this.locations.find((row) => row.id === issue.locationId);
+    if (!category || !location) return null;
+    return {
+      id: issue.id,
+      title: issue.title,
+      categoryName: category.name,
+      locality: location.locality,
+      city: location.city,
+      status: issue.status,
+      createdAt: issue.createdAt,
     };
   }
 
@@ -447,7 +541,15 @@ export class MemoryIssueStore implements IssueStore, DepartmentStore {
         },
         create: async ({ data }) => {
           const id = randomUUID();
-          this.issues.push({ ...data, id, deletedAt: null, resolvedAt: null, closedAt: null });
+          this.issues.push({
+            ...data,
+            id,
+            updatedAt: data.createdAt,
+            deletedAt: null,
+            publishedAt: null,
+            resolvedAt: null,
+            closedAt: null,
+          });
           return { id };
         },
       },

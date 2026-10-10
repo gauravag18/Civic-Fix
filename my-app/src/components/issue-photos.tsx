@@ -29,7 +29,7 @@ function IssuePhoto({ id }: { id: string }) {
     <img
       src={`/api/issue-images/${id}`}
       alt="Photograph attached to this report"
-      className="h-36 w-full border border-border object-cover"
+      className="h-40 w-full rounded-md border border-border bg-muted object-cover"
       onError={() => setFailed(true)}
     />
   );

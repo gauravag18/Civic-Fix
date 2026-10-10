@@ -24,7 +24,7 @@ export default async function DepartmentIssuePage({
   if (!result.ok && result.reason === "missing") notFound();
   if (!result.ok && result.reason === "signed-out") {
     return (
-      <AppPage title="Department report" lede="Sign in to open a department report.">
+      <AppPage area="department" title="Department report" lede="Sign in to open a department report.">
         <p>
           {STAFF_SIGN_IN} <Link href="/login">Log in</Link>
         </p>
@@ -33,14 +33,14 @@ export default async function DepartmentIssuePage({
   }
   if (!result.ok && result.reason === "forbidden") {
     return (
-      <AppPage title="Department report">
+      <AppPage area="department" title="Department report">
         <p role="status">{STAFF_FORBIDDEN}</p>
       </AppPage>
     );
   }
   if (!result.ok && result.reason === "password") {
     return (
-      <AppPage title="Department report">
+      <AppPage area="department" title="Department report">
         <p>
           {STAFF_PASSWORD} <Link href="/account/password">Change password</Link>
         </p>
@@ -49,7 +49,7 @@ export default async function DepartmentIssuePage({
   }
   if (!result.ok) {
     return (
-      <AppPage title="Department report">
+      <AppPage area="department" title="Department report">
         <p role="alert">{STAFF_UNAVAILABLE}</p>
       </AppPage>
     );
@@ -66,7 +66,7 @@ export default async function DepartmentIssuePage({
           : "";
 
   return (
-    <AppPage title={issue.title} lede={issue.categoryName}>
+    <AppPage area="department" title={issue.title} lede={issue.categoryName}>
       {updated ? <p role="status">{updated}</p> : null}
       <p className="flex flex-wrap items-center gap-2">
         <StatusMark status={issue.status} />

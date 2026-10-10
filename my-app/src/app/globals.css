@@ -3,11 +3,8 @@
 @import "shadcn/tailwind.css";
 
 /*
-  CivicFix tokens, mapped onto the names shadcn components read.
-  Light values live on :root. Dark values replace them when the
-  system asks for a dark color scheme. There is no theme toggle.
-
-  Motion communicates press feedback only. prefers-reduced-motion
+  CivicFix uses one warm cream and espresso theme.
+  Motion is limited to press feedback. prefers-reduced-motion
   removes CSS motion; Framer Motion checks the same preference.
 */
 
@@ -15,128 +12,45 @@
 
 :root {
   color-scheme: light;
-  --background: #f4f0e6;
-  --foreground: #1c2430;
-  --surface: #fbf9f4;
-  --surface-muted: #e8e2d6;
-  --card: #fbf9f4;
-  --card-foreground: #1c2430;
-  --popover: #fbf9f4;
-  --popover-foreground: #1c2430;
-  --primary: #1a3348;
-  --primary-foreground: #f7f4ee;
-  --secondary: #e8e2d6;
-  --secondary-foreground: #1c2430;
-  --muted: #e8e2d6;
-  --muted-foreground: #4e4940;
-  --accent: #0e5c56;
-  --accent-foreground: #f4fbfa;
+  --background: #f7f3eb;
+  --foreground: #34251d;
+  --surface: #fffcf6;
+  --surface-muted: #efe6d8;
+  --card: #fffcf6;
+  --card-foreground: #34251d;
+  --popover: #fffcf6;
+  --popover-foreground: #34251d;
+  --primary: #34251d;
+  --primary-foreground: #fffcf6;
+  --secondary: #efe6d8;
+  --secondary-foreground: #34251d;
+  --muted: #efe6d8;
+  --muted-foreground: #78695d;
+  --accent: #a65f43;
+  --accent-foreground: #fffcf6;
+  --link: #654737;
   --success: #145c36;
   --warning: #7a4308;
   --destructive: #8c2222;
-  --border: #7d7568;
-  --input: #7d7568;
-  --ring: #0e5c56;
-  --focus: #0e5c56;
-  --elevation-raised: 0 1px 2px rgb(28 36 48 / 0.06);
-  --radius: 0.25rem;
-  --chart-1: #1a3348;
-  --chart-2: #0e5c56;
-  --chart-3: #7a4308;
+  --border: #e4d8c8;
+  --input: #c4b29e;
+  --ring: #a65f43;
+  --focus: #654737;
+  --elevation-raised: 0 8px 24px rgb(52 37 29 / 0.06);
+  --radius: 0.375rem;
+  --chart-1: #34251d;
+  --chart-2: #a65f43;
+  --chart-3: #654737;
   --chart-4: #8c2222;
-  --chart-5: #4e4940;
-  --sidebar: #fbf9f4;
-  --sidebar-foreground: #1c2430;
-  --sidebar-primary: #1a3348;
-  --sidebar-primary-foreground: #f7f4ee;
-  --sidebar-accent: #e8e2d6;
-  --sidebar-accent-foreground: #1c2430;
-  --sidebar-border: #7d7568;
-  --sidebar-ring: #0e5c56;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --background: #12161c;
-    --foreground: #f3efe6;
-    --surface: #1b2129;
-    --surface-muted: #262d37;
-    --card: #1b2129;
-    --card-foreground: #f3efe6;
-    --popover: #1b2129;
-    --popover-foreground: #f3efe6;
-    --primary: #d7e0ea;
-    --primary-foreground: #121c28;
-    --secondary: #262d37;
-    --secondary-foreground: #f3efe6;
-    --muted: #262d37;
-    --muted-foreground: #c4bbae;
-    --accent: #6bbfb6;
-    --accent-foreground: #0e2422;
-    --success: #8fceb0;
-    --warning: #e2b56a;
-    --destructive: #f0a8a4;
-    --border: #7d8796;
-    --input: #7d8796;
-    --ring: #6bbfb6;
-    --focus: #6bbfb6;
-    --elevation-raised: 0 1px 2px rgb(0 0 0 / 0.35);
-    --chart-1: #d7e0ea;
-    --chart-2: #6bbfb6;
-    --chart-3: #e2b56a;
-    --chart-4: #f0a8a4;
-    --chart-5: #c4bbae;
-    --sidebar: #1b2129;
-    --sidebar-foreground: #f3efe6;
-    --sidebar-primary: #d7e0ea;
-    --sidebar-primary-foreground: #121c28;
-    --sidebar-accent: #262d37;
-    --sidebar-accent-foreground: #f3efe6;
-    --sidebar-border: #7d8796;
-    --sidebar-ring: #6bbfb6;
-  }
-}
-
-.dark {
-  color-scheme: dark;
-  --background: #12161c;
-  --foreground: #f3efe6;
-  --surface: #1b2129;
-  --surface-muted: #262d37;
-  --card: #1b2129;
-  --card-foreground: #f3efe6;
-  --popover: #1b2129;
-  --popover-foreground: #f3efe6;
-  --primary: #d7e0ea;
-  --primary-foreground: #121c28;
-  --secondary: #262d37;
-  --secondary-foreground: #f3efe6;
-  --muted: #262d37;
-  --muted-foreground: #c4bbae;
-  --accent: #6bbfb6;
-  --accent-foreground: #0e2422;
-  --success: #8fceb0;
-  --warning: #e2b56a;
-  --destructive: #f0a8a4;
-  --border: #7d8796;
-  --input: #7d8796;
-  --ring: #6bbfb6;
-  --focus: #6bbfb6;
-  --elevation-raised: 0 1px 2px rgb(0 0 0 / 0.35);
-  --chart-1: #d7e0ea;
-  --chart-2: #6bbfb6;
-  --chart-3: #e2b56a;
-  --chart-4: #f0a8a4;
-  --chart-5: #c4bbae;
-  --sidebar: #1b2129;
-  --sidebar-foreground: #f3efe6;
-  --sidebar-primary: #d7e0ea;
-  --sidebar-primary-foreground: #121c28;
-  --sidebar-accent: #262d37;
-  --sidebar-accent-foreground: #f3efe6;
-  --sidebar-border: #7d8796;
-  --sidebar-ring: #6bbfb6;
+  --chart-5: #78695d;
+  --sidebar: #fffcf6;
+  --sidebar-foreground: #34251d;
+  --sidebar-primary: #34251d;
+  --sidebar-primary-foreground: #fffcf6;
+  --sidebar-accent: #efe6d8;
+  --sidebar-accent-foreground: #34251d;
+  --sidebar-border: #e4d8c8;
+  --sidebar-ring: #a65f43;
 }
 
 @theme inline {
@@ -151,6 +65,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-link: var(--link);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
@@ -214,7 +129,6 @@
     font-family: var(--font-sans), "Segoe UI", sans-serif;
     font-size: 1rem;
     line-height: 1.6;
-    border-top: 0.25rem solid var(--primary);
   }
 }
 
@@ -223,12 +137,12 @@
   outline-offset: 2px;
 }
 
-a {
-  color: var(--accent);
+a:where(:not([class])) {
+  color: var(--link);
   text-underline-offset: 0.15em;
 }
 
-a:hover {
+a:where(:not([class])):hover {
   text-decoration: underline;
 }
 

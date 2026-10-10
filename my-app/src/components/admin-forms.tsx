@@ -26,7 +26,7 @@ import type { RoleCode } from "@/lib/auth/roles";
 const initial: AdminFormState = { message: "" };
 
 const controlClass =
-  "h-10 w-full rounded-none border border-input bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring";
+  "h-10 w-full rounded-md border border-input bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring";
 
 function FormAlert({ message }: { message: string }) {
   if (!message) return null;

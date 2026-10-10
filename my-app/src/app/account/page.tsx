@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { AuthPage } from "@/components/auth-page";
-import { NotificationLink } from "@/components/notification-link";
+import { AppPage } from "@/components/app-page";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Capability, hasCapability } from "@/lib/auth/capabilities";
 import { getAuthorization } from "@/lib/auth/authorization";
@@ -9,7 +8,7 @@ export default async function AccountPage() {
   const authorization = await getAuthorization();
 
   return (
-    <AuthPage
+    <AppPage
       title="Account"
       lede="Your access is checked on the server from active role grants."
     >
@@ -37,7 +36,6 @@ export default async function AccountPage() {
             <Link href="/my-issues">My reports</Link>
             {" · "}
             <Link href="/account/password">Change password</Link>
-            <NotificationLink />
             {hasCapability(authorization.capabilities, Capability.departmentWork) ? (
               <>
                 {" · "}
@@ -59,6 +57,6 @@ export default async function AccountPage() {
           You are not logged in. <Link href="/login">Log in</Link>
         </p>
       )}
-    </AuthPage>
+    </AppPage>
   );
 }

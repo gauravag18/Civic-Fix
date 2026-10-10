@@ -15,7 +15,7 @@ const initial: IssueFormState = { message: "", fieldErrors: {} };
 type SelectedPhoto = { key: string; file: File; url: string };
 
 const controlClass =
-  "h-10 w-full rounded-none border border-input bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20";
+  "h-10 w-full rounded-md border border-input bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20";
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;

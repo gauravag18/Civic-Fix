@@ -16,12 +16,12 @@ export async function markNotificationRead(formData: FormData): Promise<void> {
     createPrismaNotificationStore(),
     new Date(),
   );
-  revalidatePath("/notifications");
+  revalidatePath("/", "layout");
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
   const authorization = await getAuthorization();
   if (!authorization) redirect("/login");
   await markAllOwnedNotifications(authorization.userId, createPrismaNotificationStore(), new Date());
-  revalidatePath("/notifications");
+  revalidatePath("/", "layout");
 }

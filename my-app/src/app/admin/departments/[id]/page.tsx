@@ -74,7 +74,7 @@ export default async function DepartmentDetailPage({
             {result.department.memberships.length > 0 ? (
               <ul className="flex flex-col gap-3">
                 {result.department.memberships.map((membership) => (
-                  <li key={membership.id} className="border border-border px-3 py-3">
+                  <li key={membership.id} className="rounded-md border border-border bg-card px-4 py-4">
                     <p className="font-semibold">{membership.name}</p>
                     <p className="text-small text-muted-foreground">
                       {membership.email}

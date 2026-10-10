@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AdminDenied, AdminPage } from "@/components/admin-page";
 import { statusLabel } from "@/lib/issues/labels";
 import { loadAdminDashboard } from "@/lib/admin/queries";
@@ -16,14 +15,7 @@ export default async function AdminDashboardPage() {
       {!result.ok ? <AdminDenied reason={result.reason} /> : null}
       {result.ok ? (
         <>
-          <nav aria-label="Administration sections" className="text-small">
-            <Link href="/admin/departments">Departments</Link>
-            {" · "}
-            <Link href="/admin/categories">Categories</Link>
-            {" · "}
-            <Link href="/admin/users">Users</Link>
-          </nav>
-          <dl className="border border-border text-small">
+          <dl className="overflow-hidden rounded-md border border-border bg-card text-small">
             <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
               <dt className="font-semibold">Issues</dt>
               <dd>{result.counts.issues}</dd>
@@ -53,7 +45,7 @@ export default async function AdminDashboardPage() {
           </dl>
           <section className="flex flex-col gap-2">
             <h2 className="text-subsection font-semibold">Issues by status</h2>
-            <dl className="border border-border text-small">
+            <dl className="overflow-hidden rounded-md border border-border bg-card text-small">
               {result.counts.issuesByStatus.map((row) => (
                 <div
                   key={row.status}

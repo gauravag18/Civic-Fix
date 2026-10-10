@@ -20,6 +20,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={cn(publicSans.variable, "h-full antialiased")}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
+        <a
+          href="#content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2"
+        >
+          Skip to content
+        </a>
         <AuthProviders>{children}</AuthProviders>
       </body>
     </html>

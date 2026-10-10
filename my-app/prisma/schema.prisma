@@ -149,6 +149,8 @@ model Issue {
   resolvedAt  DateTime?   @db.Timestamptz(3)
   closedAt    DateTime?   @db.Timestamptz(3)
   deletedAt   DateTime?   @db.Timestamptz(3)
+  /// Null until the reporter publishes this issue. Existing rows stay null.
+  publishedAt DateTime?   @db.Timestamptz(3)
 
   category      IssueCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   reporter      User                 @relation("IssueReporter", fields: [reporterId], references: [id], onDelete: Restrict)
@@ -163,6 +165,8 @@ model Issue {
   @@index([status, createdAt(sort: Desc)], map: "issue_active_status_created_at", where: raw("\"deletedAt\" IS NULL"))
   @@index([categoryId, status], map: "issue_category_status")
   @@index([reporterId, createdAt(sort: Desc)], map: "issue_reporter_created_at")
+  @@index([createdAt(sort: Desc)], map: "issue_published_created_at", where: raw("\"publishedAt\" IS NOT NULL AND \"deletedAt\" IS NULL"))
+  @@index([updatedAt(sort: Desc)], map: "issue_published_updated_at", where: raw("\"publishedAt\" IS NOT NULL AND \"deletedAt\" IS NULL"))
 }
 
 model Location {

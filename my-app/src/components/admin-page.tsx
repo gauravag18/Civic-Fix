@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { NotificationLink } from "@/components/notification-link";
+import { WorkspaceShell } from "@/components/shell/workspace-shell";
+import { Button } from "@/components/ui/button";
 import {
   ADMIN_FORBIDDEN,
   ADMIN_MISSING,
@@ -18,25 +19,9 @@ export function AdminPage({
   children: ReactNode;
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
-      <header className="border-b border-border pb-4">
-        <nav aria-label="Administration" className="text-small">
-          <Link href="/admin">Administration</Link>
-          {" · "}
-          <Link href="/admin/departments">Departments</Link>
-          {" · "}
-          <Link href="/admin/categories">Categories</Link>
-          {" · "}
-          <Link href="/admin/users">Users</Link>
-          {" · "}
-          <Link href="/account">Account</Link>
-          <NotificationLink />
-        </nav>
-        <h1 className="mt-2 text-page-title font-semibold">{title}</h1>
-        {lede ? <p className="mt-2 max-w-prose text-body">{lede}</p> : null}
-      </header>
+    <WorkspaceShell area="admin" title={title} lede={lede}>
       {children}
-    </main>
+    </WorkspaceShell>
   );
 }
 
@@ -98,15 +83,10 @@ export function SearchForm({ action, query }: { action: string; query: string })
           name="q"
           defaultValue={query}
           maxLength={80}
-          className="h-10 w-full rounded-none border border-input bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-10 w-full rounded-md border border-input bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
-      <button
-        type="submit"
-        className="h-10 border border-transparent bg-primary px-3 text-label font-semibold text-primary-foreground"
-      >
-        Search
-      </button>
+      <Button type="submit">Search</Button>
     </form>
   );
 }

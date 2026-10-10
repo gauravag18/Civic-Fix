@@ -33,7 +33,7 @@ export default async function UsersPage({
           {result.total > 0 ? (
             <ol className="flex flex-col gap-3">
               {result.items.map((user) => (
-                <li key={user.id} className="border border-border px-3 py-3">
+                <li key={user.id} className="rounded-md border border-border bg-card px-4 py-4">
                   <h2 className="text-subsection font-semibold">
                     <Link href={`/admin/users/${user.id}`}>{user.name}</Link>
                   </h2>

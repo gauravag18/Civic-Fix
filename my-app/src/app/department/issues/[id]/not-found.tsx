@@ -3,7 +3,7 @@ import { AppPage } from "@/components/app-page";
 
 export default function DepartmentIssueNotFound() {
   return (
-    <AppPage
+    <AppPage area="department"
       title="Report not available"
       lede="This report is not available to your department."
     >

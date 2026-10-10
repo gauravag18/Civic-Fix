@@ -122,7 +122,7 @@ function UserRecord({
             {user.roles.length === 0 ? <p>No active roles.</p> : null}
             <ul className="flex flex-col gap-3">
               {user.roles.map((role) => (
-                <li key={role} className="flex flex-wrap items-center justify-between gap-3 border border-border px-3 py-3">
+                <li key={role} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-4">
                   <span>{role}</span>
                   <RevokeRoleForm userId={user.id} role={role} />
                 </li>

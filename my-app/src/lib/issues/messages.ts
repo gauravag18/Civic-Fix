@@ -72,3 +72,20 @@ export const STAFF_RATE_LIMITED = "Too many department updates were submitted. W
 
 export const STAFF_PASSWORD =
   "Change the initial password before using the department queue.";
+
+export const PUBLICATION_SIGN_IN = "Sign in to change whether your report is public.";
+
+export const PUBLICATION_CONFIRM = "Confirm which details will be public before publishing.";
+
+export const PUBLICATION_UNAVAILABLE = "This publication change could not be saved. Try again.";
+
+export const PUBLICATION_LOAD = "Publishing could not be loaded.";
+
+export const PUBLICATION_RATE_LIMITED =
+  "Too many publication changes were submitted. Wait and try again.";
+
+export const PUBLICATION_MISSING = "This report is not available.";
+
+export const EXPLORE_INVALID = "Check the search and try again.";
+
+export const EXPLORE_UNAVAILABLE = "Published reports could not be loaded.";
