@@ -32,3 +32,4 @@ export const registerLimiter = new SlidingWindowLimiter(5, WINDOW_MS);
 export const tokenLimiter = new SlidingWindowLimiter(8, WINDOW_MS);
 export const issueReportLimiter = new SlidingWindowLimiter(8, WINDOW_MS);
 export const departmentLimiter = new SlidingWindowLimiter(20, WINDOW_MS);
+export const adminLimiter = new SlidingWindowLimiter(30, WINDOW_MS);

@@ -34,6 +34,13 @@ export default async function AccountPage() {
                 <Link href="/department">Department queue</Link>
               </>
             ) : null}
+            {hasCapability(authorization.capabilities, Capability.roleGrant) &&
+            hasCapability(authorization.capabilities, Capability.accountDisable) ? (
+              <>
+                {" · "}
+                <Link href="/admin">Administration</Link>
+              </>
+            ) : null}
           </p>
           <SignOutButton />
         </div>
