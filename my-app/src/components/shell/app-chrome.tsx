@@ -26,7 +26,10 @@ function activeHref(pathname: string, search: string, href: string): boolean {
     return true;
   }
   if (path === "/department") {
-    return pathname.startsWith("/department") && current.get("view") !== "unassigned";
+    return (
+      (pathname === "/department" || pathname.startsWith("/department/issues")) &&
+      current.get("view") !== "unassigned"
+    );
   }
   if (path === "/admin") return pathname === "/admin";
   if (path === "/my-issues") return pathname === "/my-issues" || pathname.startsWith("/issues/");
@@ -168,6 +171,8 @@ const CRUMB_LABELS: Record<string, string> = {
   "/admin/categories/new": "New category",
   "/admin/users": "Users and staff",
   "/admin/users/new": "Provision staff",
+  "/admin/analytics": "Analytics",
+  "/department/analytics": "Department analytics",
 };
 
 function breadcrumb(pathname: string): { href: string; label: string }[] {

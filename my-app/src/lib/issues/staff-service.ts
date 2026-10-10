@@ -55,7 +55,7 @@ export function claimDepartmentUpdate(
   return limiter.allow(rateKey(["department.update", userId]), nowMs);
 }
 
-function requireStaff(
+export function requireStaff(
   access: DepartmentAccess,
 ): { ok: true; userId: string; departmentId: string } | { ok: false; reason: "signed-out" | "forbidden" | "password" } {
   if (!access) return { ok: false, reason: "signed-out" };
