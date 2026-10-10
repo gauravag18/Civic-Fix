@@ -1,15 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { describe, it } from "node:test";
 import { capabilitiesFor } from "@/lib/auth/capabilities";
 import { MemoryIssueStore } from "@/lib/issues/memory-store";
-import { readIssueImage, removeIssueImages, saveIssueImages } from "@/lib/issues/image-files";
 import {
   MAX_ISSUE_IMAGE_BYTES,
   canReadIssueImage,
-  resolveIssueImagePath,
   validateIssueImages,
 } from "@/lib/issues/image-rules";
 import { ISSUE_SAVE_FAILED } from "@/lib/issues/messages";
@@ -117,29 +112,6 @@ describe("issue photographs", () => {
         .ok,
       false,
     );
-  });
-
-  it("keeps stored files inside the configured directory", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "civicfix-images-"));
-    try {
-      const prepared = validateIssueImages([{ bytes: jpeg, declaredName: "road.jpg" }]);
-      assert.equal(prepared.ok, true);
-      if (!prepared.ok) return;
-      const key = prepared.images[0]?.storageKey ?? "";
-      assert.equal(await saveIssueImages(prepared.images, root), true);
-      const stored = await readIssueImage(key, root);
-      assert.deepEqual(stored ? Array.from(stored) : null, Array.from(jpeg));
-      assert.equal(resolveIssueImagePath(root, `../${key}`), null);
-      assert.equal(await readIssueImage(`../${key}`, root), null);
-      assert.equal(
-        await saveIssueImages([{ ...prepared.images[0], storageKey: "../evil.jpg" }], root),
-        false,
-      );
-      await removeIssueImages([key], root);
-      assert.equal(await readIssueImage(key, root), null);
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
   });
 
   it("stores images only on the new report owned by the reporter", async () => {

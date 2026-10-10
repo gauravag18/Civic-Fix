@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import path from "node:path";
 
 export const MAX_ISSUE_IMAGES = 4;
 export const MAX_ISSUE_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -27,15 +26,6 @@ export type PreparedIssueImage = PersistImage & {
 
 export function isSafeStorageKey(key: string): boolean {
   return STORAGE_KEY.test(key);
-}
-
-export function resolveIssueImagePath(root: string, key: string): string | null {
-  if (!isSafeStorageKey(key)) return null;
-  const base = path.resolve(root);
-  const full = path.resolve(base, key);
-  const relative = path.relative(base, full);
-  if (relative !== key || relative.startsWith("..") || path.isAbsolute(relative)) return null;
-  return full;
 }
 
 export function isAllowedImageMime(value: string): value is IssueImageMime {

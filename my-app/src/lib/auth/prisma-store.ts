@@ -4,12 +4,6 @@ import { getPrismaClient } from "@/lib/prisma";
 import { isRoleCode } from "@/lib/auth/roles";
 import { isAdminProvisionedMetadata, type AuthStore, type RegisterInput, type StoredUser } from "@/lib/auth/store";
 
-function bytes(value: Buffer): Uint8Array<ArrayBuffer> {
-  const copy = new Uint8Array(value.byteLength);
-  copy.set(value);
-  return copy;
-}
-
 function isUniqueViolation(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -25,7 +19,6 @@ function mapUser(user: {
   name: string;
   accountStatus: StoredUser["accountStatus"];
   disabledAt: Date | null;
-  emailVerifiedAt: Date | null;
   credential: { passwordHash: string; passwordChangedAt: Date; createdAt: Date } | null;
 }): StoredUser {
   return {
@@ -34,7 +27,6 @@ function mapUser(user: {
     name: user.name,
     accountStatus: user.accountStatus,
     disabledAt: user.disabledAt,
-    emailVerifiedAt: user.emailVerifiedAt,
     passwordHash: user.credential?.passwordHash ?? null,
     passwordChangedAt: user.credential?.passwordChangedAt ?? null,
     passwordCreatedAt: user.credential?.createdAt ?? null,
@@ -98,14 +90,6 @@ export function createPrismaAuthStore(): AuthStore {
               assignedAt: input.now,
             },
           });
-          await tx.emailVerificationToken.create({
-            data: {
-              userId: user.id,
-              tokenHash: bytes(input.verificationTokenHash),
-              expiresAt: input.verificationExpiresAt,
-              createdAt: input.now,
-            },
-          });
           return "created" as const;
         });
       } catch (error) {
@@ -123,7 +107,6 @@ export function createPrismaAuthStore(): AuthStore {
               email: input.email,
               name: input.name,
               accountStatus: "ACTIVE",
-              emailVerifiedAt: input.now,
               createdAt: input.now,
             },
           });
@@ -140,104 +123,6 @@ export function createPrismaAuthStore(): AuthStore {
         if (isUniqueViolation(error)) return { status: "duplicate" as const };
         throw error;
       }
-    },
-    async issueVerificationToken(input) {
-      const user = await db.user.findUnique({ where: { email: input.email } });
-      if (!user) return "absent";
-      if (user.emailVerifiedAt) return "already_verified";
-      await db.$transaction(async (tx) => {
-        await tx.emailVerificationToken.updateMany({
-          where: { userId: user.id, consumedAt: null },
-          data: { consumedAt: input.now },
-        });
-        await tx.emailVerificationToken.create({
-          data: {
-            userId: user.id,
-            tokenHash: bytes(input.tokenHash),
-            expiresAt: input.expiresAt,
-            createdAt: input.now,
-          },
-        });
-      });
-      return "issued";
-    },
-    async consumeVerificationToken(tokenHash, now) {
-      const hashed = bytes(tokenHash);
-      return db.$transaction(async (tx) => {
-        const token = await tx.emailVerificationToken.findUnique({ where: { tokenHash: hashed } });
-        if (!token || token.consumedAt || token.expiresAt <= now) return "invalid" as const;
-        const updated = await tx.emailVerificationToken.updateMany({
-          where: { id: token.id, consumedAt: null, expiresAt: { gt: now } },
-          data: { consumedAt: now },
-        });
-        if (updated.count !== 1) return "invalid" as const;
-        await tx.user.update({
-          where: { id: token.userId },
-          data: { emailVerifiedAt: now },
-        });
-        return "verified" as const;
-      });
-    },
-    async issueResetToken(input) {
-      const user = await db.user.findUnique({ where: { email: input.email } });
-      if (!user) return "absent";
-      if (user.accountStatus !== "ACTIVE" || user.disabledAt) return "ineligible";
-      await db.$transaction(async (tx) => {
-        await tx.passwordResetToken.updateMany({
-          where: { userId: user.id, consumedAt: null },
-          data: { consumedAt: input.now },
-        });
-        await tx.passwordResetToken.create({
-          data: {
-            userId: user.id,
-            tokenHash: bytes(input.tokenHash),
-            expiresAt: input.expiresAt,
-            createdAt: input.now,
-          },
-        });
-      });
-      return "issued";
-    },
-    async findResetAccount(tokenHash, now) {
-      const hashed = bytes(tokenHash);
-      const token = await db.passwordResetToken.findUnique({
-        where: { tokenHash: hashed },
-        include: {
-          user: {
-            select: { email: true, name: true, accountStatus: true, disabledAt: true },
-          },
-        },
-      });
-      if (!token || token.consumedAt || token.expiresAt <= now) return null;
-      if (token.user.accountStatus !== "ACTIVE" || token.user.disabledAt) return null;
-      return { email: token.user.email, name: token.user.name };
-    },
-    async consumeResetToken(input) {
-      const hashed = bytes(input.tokenHash);
-      return db.$transaction(async (tx) => {
-        const token = await tx.passwordResetToken.findUnique({ where: { tokenHash: hashed } });
-        if (!token || token.consumedAt || token.expiresAt <= input.now) return "invalid" as const;
-        const user = await tx.user.findUnique({ where: { id: token.userId } });
-        if (!user || user.accountStatus !== "ACTIVE" || user.disabledAt) return "invalid" as const;
-        const updated = await tx.passwordResetToken.updateMany({
-          where: { id: token.id, consumedAt: null, expiresAt: { gt: input.now } },
-          data: { consumedAt: input.now },
-        });
-        if (updated.count !== 1) return "invalid" as const;
-        await tx.passwordResetToken.updateMany({
-          where: { userId: user.id, consumedAt: null },
-          data: { consumedAt: input.now },
-        });
-        await tx.userCredential.update({
-          where: { userId: user.id },
-          data: { passwordHash: input.passwordHash, passwordChangedAt: input.now },
-        });
-        await tx.session.updateMany({
-          where: { userId: user.id, revokedAt: null },
-          data: { revokedAt: input.now },
-        });
-        return "reset" as const;
-      });
     },
     async activeRoleCodes(userId) {
       const grants = await db.userRole.findMany({

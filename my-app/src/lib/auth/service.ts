@@ -1,36 +1,15 @@
 import { capabilitiesFor } from "@/lib/auth/capabilities";
 import { hashPassword, validatePassword, verifyPassword } from "@/lib/auth/password";
 import {
-  EMAIL_NOT_CONFIGURED,
   LOGIN_FAILURE,
   RATE_LIMITED,
   REGISTER_NEUTRAL,
   REGISTRATION_UNAVAILABLE,
-  RESET_NEUTRAL,
-  TOKEN_INVALID,
 } from "@/lib/auth/messages";
 import { isRoleCode } from "@/lib/auth/roles";
 import { assessToken, isEligible, mustReplaceProvisionedPassword, sessionUserId, type AuthStore } from "@/lib/auth/store";
-import {
-  RESET_TTL_MS,
-  VERIFICATION_TTL_MS,
-  hashSecretToken,
-  newSecretToken,
-} from "@/lib/auth/tokens";
-import {
-  isEmailConfigured,
-  resetMessage,
-  sendAuthEmail,
-  verificationMessage,
-} from "@/lib/auth/email";
 
 export type PublicResult = { error: boolean; message: string };
-
-export type MailSender = (input: {
-  to: string;
-  subject: string;
-  text: string;
-}) => Promise<"sent" | "not_configured" | "failed">;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -76,23 +55,11 @@ export async function authenticate(
 
 export { assessToken };
 
-async function deliver(
-  send: MailSender,
-  input: { to: string; subject: string; text: string },
-): Promise<void> {
-  const result = await send(input);
-  if (result === "failed") console.error("Auth email could not be sent.");
-}
-
 export async function registerAccount(
   store: AuthStore,
   input: { email: string; name: string; password: string },
   now: Date,
-  send: MailSender = sendAuthEmail,
 ): Promise<PublicResult> {
-  if (!isEmailConfigured()) {
-    return { error: true, message: EMAIL_NOT_CONFIGURED };
-  }
   const email = normalizeEmail(input.email);
   const name = normalizeName(input.name);
   if (!email || !name) {
@@ -102,117 +69,11 @@ export async function registerAccount(
   if (passwordError) return { error: true, message: passwordError };
 
   const passwordHash = await hashPassword(input.password);
-  const token = newSecretToken();
-  const result = await store.registerCitizen({
-    email,
-    name,
-    passwordHash,
-    verificationTokenHash: token.hash,
-    verificationExpiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
-    now,
-  });
+  const result = await store.registerCitizen({ email, name, passwordHash, now });
   if (result === "role_missing") {
     return { error: true, message: REGISTRATION_UNAVAILABLE };
   }
-  if (result === "created") {
-    const origin = process.env.APP_ORIGIN ?? "";
-    await deliver(send, {
-      to: email,
-      subject: "Confirm your CivicFix email",
-      text: verificationMessage(origin, token.raw),
-    });
-  }
   return { error: false, message: REGISTER_NEUTRAL };
-}
-
-export async function requestVerification(
-  store: AuthStore,
-  emailInput: string,
-  now: Date,
-  send: MailSender = sendAuthEmail,
-): Promise<PublicResult> {
-  if (!isEmailConfigured()) {
-    return { error: true, message: EMAIL_NOT_CONFIGURED };
-  }
-  const email = normalizeEmail(emailInput);
-  if (!email) return { error: true, message: "Enter a valid email address." };
-  const token = newSecretToken();
-  const result = await store.issueVerificationToken({
-    email,
-    tokenHash: token.hash,
-    expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
-    now,
-  });
-  if (result === "issued") {
-    const origin = process.env.APP_ORIGIN ?? "";
-    await deliver(send, {
-      to: email,
-      subject: "Confirm your CivicFix email",
-      text: verificationMessage(origin, token.raw),
-    });
-  }
-  return { error: false, message: REGISTER_NEUTRAL };
-}
-
-export async function verifyEmail(
-  store: AuthStore,
-  rawToken: string,
-  now: Date,
-): Promise<PublicResult> {
-  if (!rawToken) return { error: true, message: TOKEN_INVALID };
-  const result = await store.consumeVerificationToken(hashSecretToken(rawToken), now);
-  if (result !== "verified") return { error: true, message: TOKEN_INVALID };
-  return { error: false, message: "Email confirmed. You can log in." };
-}
-
-export async function requestPasswordReset(
-  store: AuthStore,
-  emailInput: string,
-  now: Date,
-  send: MailSender = sendAuthEmail,
-): Promise<PublicResult> {
-  if (!isEmailConfigured()) {
-    return { error: true, message: EMAIL_NOT_CONFIGURED };
-  }
-  const email = normalizeEmail(emailInput);
-  if (!email) return { error: true, message: "Enter a valid email address." };
-  const token = newSecretToken();
-  const result = await store.issueResetToken({
-    email,
-    tokenHash: token.hash,
-    expiresAt: new Date(now.getTime() + RESET_TTL_MS),
-    now,
-  });
-  if (result === "issued") {
-    const origin = process.env.APP_ORIGIN ?? "";
-    await deliver(send, {
-      to: email,
-      subject: "Reset your CivicFix password",
-      text: resetMessage(origin, token.raw),
-    });
-  }
-  return { error: false, message: RESET_NEUTRAL };
-}
-
-export async function resetPassword(
-  store: AuthStore,
-  input: { token: string; password: string },
-  now: Date,
-): Promise<PublicResult> {
-  if (!input.token) return { error: true, message: TOKEN_INVALID };
-  const tokenHash = hashSecretToken(input.token);
-  const account = await store.findResetAccount(tokenHash, now);
-  if (!account) return { error: true, message: TOKEN_INVALID };
-  const passwordError = validatePassword(input.password, account.email, account.name);
-  if (passwordError) return { error: true, message: passwordError };
-  const passwordHash = await hashPassword(input.password);
-  const result = await store.consumeResetToken({
-    tokenHash,
-    passwordHash,
-    now,
-  });
-  if (result !== "reset") return { error: true, message: TOKEN_INVALID };
-  return { error: false, message: "Password updated. Log in with the new password." };
 }
 
 export async function authorizationForSession(

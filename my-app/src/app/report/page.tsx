@@ -18,7 +18,7 @@ export default async function ReportPage() {
     >
       {page.state === "signed-out" ? (
         <p>
-          Sign in with a verified citizen account to report an issue. <Link href="/login">Log in</Link>
+          Sign in with a citizen account to report an issue. <Link href="/login">Log in</Link>
         </p>
       ) : null}
       {page.state === "forbidden" ? <p role="status">{ISSUE_FORBIDDEN}</p> : null}

@@ -14,7 +14,6 @@ function decimalText(value: { toString(): string } | string | null): string | nu
 const eligibleUser = {
   accountStatus: "ACTIVE" as const,
   disabledAt: null,
-  emailVerifiedAt: { not: null },
 };
 
 function adapt(tx: PrismaClient): StaffTx {

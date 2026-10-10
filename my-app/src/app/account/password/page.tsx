@@ -11,7 +11,7 @@ export default async function ChangePasswordPage() {
   return (
     <AppPage
       title="Change password"
-      lede="Use the current password. A provisioned staff account must replace the initial password before opening the department queue."
+      lede="Use the current password. A provisioned staff account must replace the initial password before opening the department queue. A forgotten password cannot be reset by email."
     >
       {authorization ? (
         <ChangePasswordForm />

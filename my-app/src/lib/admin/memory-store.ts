@@ -239,7 +239,6 @@ export class MemoryAdminStore implements AdminStore {
       : undefined;
     return {
       ...this.summary(user),
-      emailVerifiedAt: user.emailVerifiedAt,
       disabledAt: user.disabledAt,
       departmentId: department?.id ?? null,
     };
@@ -305,7 +304,6 @@ export class MemoryAdminStore implements AdminStore {
       name: input.name,
       accountStatus: "ACTIVE",
       disabledAt: null,
-      emailVerifiedAt: null,
       roles: ["DEPARTMENT_STAFF"],
       adminProvisioned: true,
     });
@@ -344,16 +342,13 @@ export class MemoryAdminStore implements AdminStore {
     };
   }
 
-  private activation(user: MemoryAdminUser): "email" | "admin" | "pending" {
-    if (user.emailVerifiedAt) return "email";
-    if (user.adminProvisioned) return "admin";
-    return "pending";
+  private activation(user: MemoryAdminUser): "admin" | "registered" {
+    return user.adminProvisioned ? "admin" : "registered";
   }
 
   private canJoinDepartment(user: MemoryAdminUser, departmentId: string): boolean {
     if (!user.roles.includes("DEPARTMENT_STAFF")) return false;
     if (user.accountStatus !== "ACTIVE" || user.disabledAt) return false;
-    if (!user.emailVerifiedAt && !user.adminProvisioned) return false;
     if (this.memberships.some((row) => row.userId === user.id && row.endedAt === null)) return false;
     return this.departments.some((row) => row.id === departmentId && row.isActive);
   }

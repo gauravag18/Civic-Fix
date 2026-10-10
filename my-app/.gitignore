@@ -37,7 +37,8 @@ yarn-error.log*
 # vercel
 .vercel
 
-# issue photographs stored outside the public web root
+# leftover local issue photographs from before Supabase Storage
+# The application no longer writes here. Do not commit any files that remain.
 /data/issue-images/
 
 # typescript

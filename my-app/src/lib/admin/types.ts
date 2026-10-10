@@ -72,11 +72,10 @@ export type UserSummary = {
   accountStatus: AccountStatus;
   roles: RoleCode[];
   departmentName: string | null;
-  activation: "email" | "admin" | "pending";
+  activation: "admin" | "registered";
 };
 
 export type UserDetail = UserSummary & {
-  emailVerifiedAt: Date | null;
   disabledAt: Date | null;
   departmentId: string | null;
 };

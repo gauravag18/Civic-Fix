@@ -20,7 +20,6 @@ function verifiedUser(overrides: Partial<StoredUser> = {}): StoredUser {
     name: "Ada",
     accountStatus: "ACTIVE",
     disabledAt: null,
-    emailVerifiedAt: now,
     passwordHash: "hash",
     passwordChangedAt: now,
     ...overrides,
@@ -62,7 +61,6 @@ describe("Google sign-in policy", () => {
     assert.equal(result.ok, true);
     assert.equal(store.users.length, 1);
     assert.equal(store.users[0].email, "ada@example.com");
-    assert.equal(store.users[0].emailVerifiedAt?.toISOString(), now.toISOString());
     assert.equal(store.users[0].passwordHash, null);
     assert.deepEqual(await store.activeRoleCodes(store.users[0].id), ["CITIZEN"]);
     const access = await authorizationForSession(store, { user: { id: store.users[0].id } }, "spoofed");
@@ -81,15 +79,14 @@ describe("Google sign-in policy", () => {
     assert.equal(rejected.ok, false);
     assert.equal(store.users.length, 0);
 
-    store.users.push(verifiedUser({ emailVerifiedAt: null, passwordHash: "hash" }));
+    store.users.push(verifiedUser({ passwordHash: "hash" }));
     store.grants.push({ userId: "user-1", roleCode: "CITIZEN", revokedAt: null });
-    const unlinked = await authenticateGoogle(
+    const linked = await authenticateGoogle(
       store,
       { email: "ada@example.com", emailVerified: true, name: "Ada" },
       now,
     );
-    assert.equal(unlinked.ok, false);
-    assert.equal(store.users[0].emailVerifiedAt, null);
+    assert.equal(linked.ok, true);
     assert.deepEqual(await store.activeRoleCodes("user-1"), ["CITIZEN"]);
   });
 

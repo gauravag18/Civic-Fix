@@ -7,94 +7,54 @@ import { hashPassword } from "./password";
 import {
   authenticate,
   authorizationFor,
+  changeOwnPassword,
   disableAccount,
   grantRole,
   registerAccount,
-  requestPasswordReset,
-  resetPassword,
-  verifyEmail,
 } from "./service";
-import { assessToken, type StoredUser } from "./store";
-import { RESET_TTL_MS, VERIFICATION_TTL_MS } from "./tokens";
+import { assessToken, mustReplaceProvisionedPassword, type StoredUser } from "./store";
 
 const now = new Date("2026-10-09T12:00:00.000Z");
 const password = "a-long-enough-passphrase";
 
-function configuredEnv() {
-  process.env.EMAIL_FROM = "CivicFix <civicfix@example.com>";
-  process.env.SMTP_HOST = "smtp.example.com";
-  process.env.SMTP_PORT = "587";
-  process.env.SMTP_USER = "civicfix";
-  process.env.SMTP_PASSWORD = "secret";
-  process.env.APP_ORIGIN = "http://localhost:3000";
-}
-
-function recordingMailer() {
-  const sent: string[] = [];
-  return {
-    sent,
-    send: async (input: { to: string; text: string }) => {
-      sent.push(input.text);
-      return "sent" as const;
-    },
-  };
-}
-
-function tokenFrom(message: string): string {
-  const value = new URL(message.split(" ").at(-1) ?? "").searchParams.get("token");
-  if (!value) throw new Error("Test mail did not include a token.");
-  return value;
-}
-
 describe("authentication service", () => {
-  it("registers one citizen and does not reveal the verification token in the result", async () => {
-    configuredEnv();
+  it("registers one citizen who can log in without email verification", async () => {
     const store = new MemoryAuthStore();
-    const mail = recordingMailer();
     const result = await registerAccount(
       store,
       { email: "Ada@Example.com", name: "Ada Lovelace", password },
       now,
-      mail.send,
     );
     const duplicate = await registerAccount(
       store,
       { email: "ada@example.com", name: "Ada Lovelace", password },
       now,
-      mail.send,
     );
 
     assert.equal(result.error, false);
     assert.equal(result.message, REGISTER_NEUTRAL);
     assert.equal(JSON.stringify(result).includes("token"), false);
+    assert.equal(JSON.stringify(result).includes("secret"), false);
     assert.equal(store.users.length, 1);
     assert.deepEqual(await store.activeRoleCodes(store.users[0].id), ["CITIZEN"]);
+    assert.equal(store.users[0].adminProvisioned, undefined);
     assert.equal(duplicate.message, REGISTER_NEUTRAL);
-    assert.equal(mail.sent.length, 1);
+    assert.equal((await authenticate(store, "ada@example.com", password)).ok, true);
   });
 
-  it("uses the same login failure for unknown, wrong, unverified, and disabled accounts", async () => {
+  it("uses the same login failure for unknown, wrong, suspended, and disabled accounts", async () => {
     const store = new MemoryAuthStore();
-    const mail = recordingMailer();
-    configuredEnv();
-    await registerAccount(
-      store,
-      { email: "ada@example.com", name: "Ada Lovelace", password },
-      now,
-      mail.send,
-    );
+    await registerAccount(store, { email: "ada@example.com", name: "Ada Lovelace", password }, now);
     const unknown = await authenticate(store, "missing@example.com", password);
     const wrong = await authenticate(store, "ada@example.com", "wrong-passphrase-value");
-    const unverified = await authenticate(store, "ada@example.com", password);
     assert.deepEqual(unknown, { ok: false });
     assert.deepEqual(wrong, { ok: false });
-    assert.deepEqual(unverified, { ok: false });
 
-    const verified = await verifyEmail(store, tokenFrom(mail.sent[0]), now);
-    assert.equal(verified.error, false);
     const success = await authenticate(store, "ada@example.com", password);
     assert.equal(success.ok, true);
 
+    store.users[0].accountStatus = "SUSPENDED";
+    assert.deepEqual(await authenticate(store, "ada@example.com", password), { ok: false });
     store.users[0].accountStatus = "DISABLED";
     store.users[0].disabledAt = now;
     const disabled = await authenticate(store, "ada@example.com", password);
@@ -102,7 +62,7 @@ describe("authentication service", () => {
     assert.equal(LOGIN_FAILURE.length > 0, true);
   });
 
-  it("accepts admin-provisioned staff without treating the email as verified", async () => {
+  it("lets provisioned staff sign in and requires the initial password to be replaced", async () => {
     const store = new MemoryAuthStore();
     const stored = await hashPassword(password);
     store.users.push({
@@ -111,7 +71,6 @@ describe("authentication service", () => {
       name: "Sam Staff",
       accountStatus: "ACTIVE",
       disabledAt: null,
-      emailVerifiedAt: null,
       passwordHash: stored,
       passwordChangedAt: now,
       passwordCreatedAt: now,
@@ -119,54 +78,20 @@ describe("authentication service", () => {
     });
     const success = await authenticate(store, "sam@example.com", password);
     assert.equal(success.ok, true);
-    store.users[0].adminProvisioned = false;
-    assert.equal((await authenticate(store, "sam@example.com", password)).ok, false);
-  });
-
-  it("rejects expired and reused verification and reset tokens", async () => {
-    configuredEnv();
-    const store = new MemoryAuthStore();
-    const mail = recordingMailer();
-    await registerAccount(
+    assert.equal(mustReplaceProvisionedPassword(store.users[0]), true);
+    const changed = await changeOwnPassword(
       store,
-      { email: "ada@example.com", name: "Ada Lovelace", password },
-      now,
-      mail.send,
+      store.users[0].id,
+      {
+        currentPassword: password,
+        nextPassword: "another-long-passphrase",
+        confirmPassword: "another-long-passphrase",
+      },
+      new Date(now.getTime() + 1000),
     );
-    const verification = tokenFrom(mail.sent[0]);
-    const expired = await verifyEmail(
-      store,
-      verification,
-      new Date(now.getTime() + VERIFICATION_TTL_MS + 1),
-    );
-    assert.equal(expired.error, true);
-    const fresh = await verifyEmail(store, verification, now);
-    assert.equal(fresh.error, false);
-    const reused = await verifyEmail(store, verification, now);
-    assert.equal(reused.error, true);
-
-    const resetMail = recordingMailer();
-    await requestPasswordReset(store, "ada@example.com", now, resetMail.send);
-    const resetToken = tokenFrom(resetMail.sent[0]);
-    const expiredReset = await resetPassword(
-      store,
-      { token: resetToken, password: "another-long-passphrase" },
-      new Date(now.getTime() + RESET_TTL_MS + 1),
-    );
-    assert.equal(expiredReset.error, true);
-    const reset = await resetPassword(
-      store,
-      { token: resetToken, password: "another-long-passphrase" },
-      now,
-    );
-    assert.equal(reset.error, false);
-    const reusedReset = await resetPassword(
-      store,
-      { token: resetToken, password: "yet-another-passphrase" },
-      now,
-    );
-    assert.equal(reusedReset.error, true);
-    assert.equal(store.revokedSessionUsers.includes(store.users[0].id), true);
+    assert.equal(changed.error, false);
+    assert.equal(mustReplaceProvisionedPassword(store.users[0]), false);
+    assert.equal((await authenticate(store, "sam@example.com", "another-long-passphrase")).ok, true);
   });
 
   it("blocks an old JWT marker after a password change and ignores spoofed departments", async () => {
@@ -178,7 +103,6 @@ describe("authentication service", () => {
       name: "Ada",
       accountStatus: "ACTIVE",
       disabledAt: null,
-      emailVerifiedAt: now,
       passwordHash: stored,
       passwordChangedAt: changedAt,
     };
@@ -213,7 +137,6 @@ describe("authentication service", () => {
       name: "Citizen",
       accountStatus: "ACTIVE" as const,
       disabledAt: null,
-      emailVerifiedAt: now,
       passwordHash: "hash",
       passwordChangedAt: now,
     };

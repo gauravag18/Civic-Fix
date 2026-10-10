@@ -51,20 +51,17 @@ model User {
   id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email         String        @unique @db.VarChar(320)
   name          String        @db.VarChar(160)
-  accountStatus   AccountStatus @default(ACTIVE)
-  disabledAt      DateTime?     @db.Timestamptz(3)
-  emailVerifiedAt DateTime?     @db.Timestamptz(3)
-  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  accountStatus AccountStatus @default(ACTIVE)
+  disabledAt    DateTime?     @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
 
   rolesReceived            UserRole[]               @relation("UserRoleRecipient")
   rolesAssigned            UserRole[]               @relation("UserRoleAssigner")
   departmentMemberships    DepartmentMembership[]
-  credential               UserCredential?
-  sessions                 Session[]
-  passwordResetTokens      PasswordResetToken[]
-  emailVerificationTokens  EmailVerificationToken[]
-  reportedIssues           Issue[]                  @relation("IssueReporter")
+  credential            UserCredential?
+  sessions              Session[]
+  reportedIssues        Issue[]                  @relation("IssueReporter")
   uploadedImages           IssueImage[]
   commentsAuthored         IssueComment[]           @relation("CommentAuthor")
   commentsDeleted          IssueComment[]           @relation("CommentDeleter")
@@ -329,32 +326,4 @@ model Session {
 
   @@index([userId, revokedAt], map: "session_user_revoked_at")
   @@index([expiresAt], map: "session_expires_at")
-}
-
-model PasswordResetToken {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String    @db.Uuid
-  tokenHash  Bytes     @unique @db.ByteA
-  expiresAt  DateTime  @db.Timestamptz(3)
-  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
-  consumedAt DateTime? @db.Timestamptz(3)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-
-  @@unique([userId], map: "password_reset_one_active", where: raw("\"consumedAt\" IS NULL"))
-  @@index([expiresAt], map: "password_reset_expires_at")
-}
-
-model EmailVerificationToken {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String    @db.Uuid
-  tokenHash  Bytes     @unique @db.ByteA
-  expiresAt  DateTime  @db.Timestamptz(3)
-  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
-  consumedAt DateTime? @db.Timestamptz(3)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-
-  @@unique([userId], map: "email_verification_one_active", where: raw("\"consumedAt\" IS NULL"))
-  @@index([expiresAt], map: "email_verification_expires_at")
 }

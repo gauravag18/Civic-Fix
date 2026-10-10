@@ -180,16 +180,10 @@ export function createPrismaAdminStore(): AdminStore {
         select: { id: true },
       });
       if (!department) return [];
-      const provisionRows = await prisma.auditLog.findMany({
-        where: { action: "staff.provision", entityType: "User" },
-        select: { entityId: true },
-      });
-      const activated = await provisionedIds(provisionRows.map((row) => row.entityId));
       const rows = await prisma.user.findMany({
         where: {
           accountStatus: "ACTIVE",
           disabledAt: null,
-          OR: [{ emailVerifiedAt: { not: null } }, { id: { in: [...activated] } }],
           rolesReceived: { some: { revokedAt: null, role: { code: "DEPARTMENT_STAFF" } } },
           departmentMemberships: { none: { endedAt: null } },
         },
@@ -310,16 +304,11 @@ export function createPrismaAdminStore(): AdminStore {
             where: { id: input.departmentId, isActive: true },
             select: { id: true },
           });
-          const provision = await db.auditLog.findFirst({
-            where: { action: "staff.provision", entityType: "User", entityId: input.userId },
-            select: { metadata: true },
-          });
           const user = await db.user.findFirst({
             where: {
               id: input.userId,
               accountStatus: "ACTIVE",
               disabledAt: null,
-              ...(isAdminProvisionedMetadata(provision?.metadata) ? {} : { emailVerifiedAt: { not: null } }),
               rolesReceived: { some: { revokedAt: null, role: { code: "DEPARTMENT_STAFF" } } },
               departmentMemberships: { none: { endedAt: null } },
             },
@@ -780,7 +769,6 @@ const userSelect = {
   email: true,
   name: true,
   accountStatus: true,
-  emailVerifiedAt: true,
   disabledAt: true,
   rolesReceived: {
     where: { revokedAt: null },
@@ -799,7 +787,6 @@ function mapUser(
     email: string;
     name: string;
     accountStatus: "ACTIVE" | "SUSPENDED" | "DISABLED";
-    emailVerifiedAt: Date | null;
     disabledAt: Date | null;
     rolesReceived: { role: { code: string } }[];
     departmentMemberships: { department: { id: string; name: string } }[];
@@ -815,9 +802,8 @@ function mapUser(
     accountStatus: user.accountStatus,
     roles,
     departmentName: department?.name ?? null,
-    emailVerifiedAt: user.emailVerifiedAt,
     disabledAt: user.disabledAt,
     departmentId: department?.id ?? null,
-    activation: user.emailVerifiedAt ? ("email" as const) : adminProvisioned ? ("admin" as const) : ("pending" as const),
+    activation: adminProvisioned ? ("admin" as const) : ("registered" as const),
   };
 }

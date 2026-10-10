@@ -153,7 +153,6 @@ export type MemoryAdminUser = {
   name: string;
   accountStatus: AccountStatus;
   disabledAt: Date | null;
-  emailVerifiedAt: Date | null;
   roles: RoleCode[];
   adminProvisioned?: boolean;
 };

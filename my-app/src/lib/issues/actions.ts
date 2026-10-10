@@ -5,7 +5,8 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { getAuthorization } from "@/lib/auth/authorization";
 import { issueReportLimiter } from "@/lib/auth/rate-limit";
 import { clientAddress, trustedProxyHops } from "@/lib/auth/request-security";
-import { removeIssueImages, saveIssueImages } from "@/lib/issues/image-files";
+import { removeIssueImages, saveIssueImages } from "@/lib/issues/image-storage";
+import { createIssueImageStore } from "@/lib/issues/supabase-images";
 import { validateIssueImages, type ImageCandidate } from "@/lib/issues/image-rules";
 import { FIELD_PHOTOS, ISSUE_CHECK_FIELDS, ISSUE_RATE_LIMITED, ISSUE_SAVE_FAILED, ISSUE_SIGN_IN } from "@/lib/issues/messages";
 import { createPrismaIssueStore } from "@/lib/issues/prisma-store";
@@ -42,6 +43,7 @@ export async function submitIssue(
 ): Promise<IssueFormState> {
   let savedKeys: string[] = [];
   let keepFiles = false;
+  const imageStore = createIssueImageStore();
   try {
     const authorization = await getAuthorization();
     if (!authorization) return { message: ISSUE_SIGN_IN, fieldErrors: initialFields };
@@ -60,7 +62,7 @@ export async function submitIssue(
     }
     savedKeys = prepared.images.map((image) => image.storageKey);
     if (prepared.images.length > 0) {
-      const saved = await saveIssueImages(prepared.images);
+      const saved = await saveIssueImages(prepared.images, imageStore);
       if (!saved) return { message: ISSUE_SAVE_FAILED, fieldErrors: initialFields };
     }
     const result = await createCitizenIssue(
@@ -88,7 +90,7 @@ export async function submitIssue(
       })),
     );
     keepFiles = result.ok && !result.duplicate;
-    if (!keepFiles) await removeIssueImages(savedKeys);
+    if (!keepFiles) await removeIssueImages(savedKeys, imageStore);
     if (result.ok) {
       const flag = result.duplicate ? "existing" : "submitted";
       redirect(`/issues/${result.issueId}?${flag}=1`);
@@ -96,7 +98,7 @@ export async function submitIssue(
     return { message: result.message, fieldErrors: result.fieldErrors };
   } catch (error) {
     unstable_rethrow(error);
-    if (!keepFiles) await removeIssueImages(savedKeys);
+    if (!keepFiles) await removeIssueImages(savedKeys, imageStore);
     console.error("Issue creation failed.");
     return { message: ISSUE_SAVE_FAILED, fieldErrors: initialFields };
   }

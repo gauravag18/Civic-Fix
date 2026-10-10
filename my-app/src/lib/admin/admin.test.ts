@@ -46,7 +46,6 @@ function person(input: Partial<MemoryAdminUser> & Pick<MemoryAdminUser, "id" | "
     name: "Person",
     accountStatus: "ACTIVE",
     disabledAt: null,
-    emailVerifiedAt: now,
     ...input,
   };
 }
@@ -333,7 +332,6 @@ describe("staff provisioning", () => {
     assert.equal(created.ok, true);
     const staffUser = store.users.find((user) => user.email === "sam.staff@example.com");
     assert.ok(staffUser);
-    assert.equal(staffUser.emailVerifiedAt, null);
     assert.equal(staffUser.adminProvisioned, true);
     assert.deepEqual(staffUser.roles, ["DEPARTMENT_STAFF"]);
     assert.equal(store.memberships.some((row) => row.userId === staffUser.id && row.endedAt === null), true);
@@ -356,7 +354,6 @@ describe("staff provisioning", () => {
         name: staffUser.name,
         accountStatus: "ACTIVE",
         disabledAt: null,
-        emailVerifiedAt: null,
         passwordHash: credential?.passwordHash ?? null,
         passwordChangedAt: now,
         passwordCreatedAt: now,
@@ -371,11 +368,10 @@ describe("staff provisioning", () => {
         name: "Cara Citizen",
         accountStatus: "ACTIVE",
         disabledAt: null,
-        emailVerifiedAt: null,
         passwordHash: "hash",
         passwordChangedAt: now,
       }),
-      false,
+      true,
     );
     assert.equal(
       mustReplaceProvisionedPassword({
@@ -384,7 +380,6 @@ describe("staff provisioning", () => {
         name: staffUser.name,
         accountStatus: "ACTIVE",
         disabledAt: null,
-        emailVerifiedAt: null,
         passwordHash: credential?.passwordHash ?? null,
         passwordChangedAt: now,
         passwordCreatedAt: now,

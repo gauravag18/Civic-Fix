@@ -4,7 +4,6 @@ import { AdminDenied, AdminPage } from "@/components/admin-page";
 import { ADMIN_STAFF_READY } from "@/lib/admin/messages";
 import { loadAdminUser } from "@/lib/admin/queries";
 import { ROLE_CODES, type RoleCode } from "@/lib/auth/roles";
-import { formatWhen } from "@/lib/issues/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -50,9 +49,8 @@ function UserRecord({
     roles: RoleCode[];
     departmentName: string | null;
     departmentId: string | null;
-    emailVerifiedAt: Date | null;
     disabledAt: Date | null;
-    activation: "email" | "admin" | "pending";
+    activation: "admin" | "registered";
   };
   viewerId: string;
 }) {
@@ -79,24 +77,8 @@ function UserRecord({
           <dd>{user.accountStatus}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
-          <dt className="font-semibold">Email verified</dt>
-          <dd>
-            {user.emailVerifiedAt ? (
-              <time dateTime={user.emailVerifiedAt.toISOString()}>{formatWhen(user.emailVerifiedAt)} UTC</time>
-            ) : (
-              "Not verified"
-            )}
-          </dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
-          <dt className="font-semibold">Activation</dt>
-          <dd>
-            {user.activation === "admin"
-              ? "Admin-provisioned"
-              : user.activation === "email"
-                ? "Email confirmation"
-                : "Waiting for email confirmation"}
-          </dd>
+          <dt className="font-semibold">Account</dt>
+          <dd>{user.activation === "admin" ? "Admin-provisioned" : "Registered"}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-4 px-3 py-2">
           <dt className="font-semibold">Department</dt>

@@ -18,9 +18,9 @@ import { normalizeEmail, normalizeName } from "../src/lib/auth/service";
 //   are supplied in the environment for this invocation. Do not store the
 //   password in .env.
 //
-// Email verification policy: this command sets emailVerifiedAt to the account
-// creation time so the first administrator can sign in when mail is not
-// configured. Normal registration still requires the email verification flow.
+// The account can sign in immediately. Registration does not require email
+// verification. This command still grants ADMINISTRATOR only through this
+// explicit local step.
 //
 // The account receives ADMINISTRATOR. When the CITIZEN role already exists,
 // it also receives CITIZEN. It does not receive staff or moderator access.
@@ -145,7 +145,6 @@ async function main() {
             email,
             name,
             accountStatus: "ACTIVE",
-            emailVerifiedAt: now,
             createdAt: now,
             credential: {
               create: { passwordHash, createdAt: now, passwordChangedAt: now },

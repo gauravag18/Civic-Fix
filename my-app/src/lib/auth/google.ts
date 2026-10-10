@@ -49,7 +49,7 @@ function displayName(name: string | null, email: string): string {
 function matchExisting(
   user: StoredUser,
 ): { ok: true; userId: string; passwordChangedAt: number | null } | { ok: false } {
-  if (user.accountStatus !== "ACTIVE" || user.disabledAt !== null || user.emailVerifiedAt === null) {
+  if (user.accountStatus !== "ACTIVE" || user.disabledAt !== null) {
     return { ok: false };
   }
   return {

@@ -4,10 +4,9 @@ import { loadAdminUsers } from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";
 
-function activationLabel(activation: "email" | "admin" | "pending"): string {
+function activationLabel(activation: "admin" | "registered"): string {
   if (activation === "admin") return "Admin-provisioned";
-  if (activation === "email") return "Email confirmed";
-  return "Email not confirmed";
+  return "Registered";
 }
 
 export default async function UsersPage({

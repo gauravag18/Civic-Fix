@@ -2,20 +2,11 @@ import { randomUUID } from "node:crypto";
 import { isRoleCode } from "@/lib/auth/roles";
 import type { AuthStore, RegisterInput, StoredUser } from "@/lib/auth/store";
 
-type TokenRow = {
-  userId: string;
-  hash: Buffer;
-  expiresAt: Date;
-  consumedAt: Date | null;
-};
-
 type Grant = { userId: string; roleCode: string; revokedAt: Date | null };
 
 export class MemoryAuthStore implements AuthStore {
   readonly users: StoredUser[] = [];
   readonly grants: Grant[] = [];
-  readonly verifications: TokenRow[] = [];
-  readonly resets: TokenRow[] = [];
   readonly revokedSessionUsers: string[] = [];
   readonly departments = new Map<string, string>();
   readonly roleCodes = new Set([
@@ -42,18 +33,12 @@ export class MemoryAuthStore implements AuthStore {
       name: input.name,
       accountStatus: "ACTIVE",
       disabledAt: null,
-      emailVerifiedAt: null,
       passwordHash: input.passwordHash,
       passwordChangedAt: input.now,
+      passwordCreatedAt: input.now,
     };
     this.users.push(user);
     this.grants.push({ userId: user.id, roleCode: "CITIZEN", revokedAt: null });
-    this.verifications.push({
-      userId: user.id,
-      hash: input.verificationTokenHash,
-      expiresAt: input.verificationExpiresAt,
-      consumedAt: null,
-    });
     return "created";
   }
 
@@ -70,89 +55,12 @@ export class MemoryAuthStore implements AuthStore {
       name: input.name,
       accountStatus: "ACTIVE",
       disabledAt: null,
-      emailVerifiedAt: input.now,
       passwordHash: null,
       passwordChangedAt: null,
     };
     this.users.push(user);
     this.grants.push({ userId: user.id, roleCode: "CITIZEN", revokedAt: null });
     return { status: "created", userId: user.id };
-  }
-
-  async issueVerificationToken(input: {
-    email: string;
-    tokenHash: Buffer;
-    expiresAt: Date;
-    now: Date;
-  }): Promise<"issued" | "absent" | "already_verified"> {
-    const user = await this.findUserByEmail(input.email);
-    if (!user) return "absent";
-    if (user.emailVerifiedAt) return "already_verified";
-    this.consumeOutstanding(this.verifications, user.id, input.now);
-    this.verifications.push({
-      userId: user.id,
-      hash: input.tokenHash,
-      expiresAt: input.expiresAt,
-      consumedAt: null,
-    });
-    return "issued";
-  }
-
-  async consumeVerificationToken(tokenHash: Buffer, now: Date): Promise<"verified" | "invalid"> {
-    const token = this.findOpenToken(this.verifications, tokenHash, now);
-    if (!token) return "invalid";
-    token.consumedAt = now;
-    const user = await this.findUserById(token.userId);
-    if (!user) return "invalid";
-    user.emailVerifiedAt = now;
-    return "verified";
-  }
-
-  async issueResetToken(input: {
-    email: string;
-    tokenHash: Buffer;
-    expiresAt: Date;
-    now: Date;
-  }): Promise<"issued" | "absent" | "ineligible"> {
-    const user = await this.findUserByEmail(input.email);
-    if (!user) return "absent";
-    if (user.accountStatus !== "ACTIVE" || user.disabledAt) return "ineligible";
-    this.consumeOutstanding(this.resets, user.id, input.now);
-    this.resets.push({
-      userId: user.id,
-      hash: input.tokenHash,
-      expiresAt: input.expiresAt,
-      consumedAt: null,
-    });
-    return "issued";
-  }
-
-  async findResetAccount(
-    tokenHash: Buffer,
-    now: Date,
-  ): Promise<{ email: string; name: string } | null> {
-    const token = this.findOpenToken(this.resets, tokenHash, now);
-    if (!token) return null;
-    const user = await this.findUserById(token.userId);
-    if (!user || user.accountStatus !== "ACTIVE" || user.disabledAt) return null;
-    return { email: user.email, name: user.name };
-  }
-
-  async consumeResetToken(input: {
-    tokenHash: Buffer;
-    passwordHash: string;
-    now: Date;
-  }): Promise<"reset" | "invalid"> {
-    const token = this.findOpenToken(this.resets, input.tokenHash, input.now);
-    if (!token) return "invalid";
-    const user = await this.findUserById(token.userId);
-    if (!user || user.accountStatus !== "ACTIVE" || user.disabledAt) return "invalid";
-    token.consumedAt = input.now;
-    this.consumeOutstanding(this.resets, user.id, input.now);
-    user.passwordHash = input.passwordHash;
-    user.passwordChangedAt = input.now;
-    this.revokedSessionUsers.push(user.id);
-    return "reset";
   }
 
   async activeRoleCodes(userId: string): Promise<string[]> {
@@ -221,22 +129,5 @@ export class MemoryAuthStore implements AuthStore {
     user.passwordHash = input.passwordHash;
     user.passwordChangedAt = input.now;
     return "changed";
-  }
-
-  private findOpenToken(rows: TokenRow[], tokenHash: Buffer, now: Date): TokenRow | null {
-    return (
-      rows.find(
-        (row) =>
-          row.hash.equals(tokenHash) &&
-          row.consumedAt === null &&
-          row.expiresAt.getTime() > now.getTime(),
-      ) ?? null
-    );
-  }
-
-  private consumeOutstanding(rows: TokenRow[], userId: string, now: Date): void {
-    for (const row of rows) {
-      if (row.userId === userId && row.consumedAt === null) row.consumedAt = now;
-    }
   }
 }

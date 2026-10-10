@@ -4,10 +4,6 @@ import { headers } from "next/headers";
 import {
   changeOwnPassword,
   registerAccount,
-  requestPasswordReset,
-  requestVerification,
-  resetPassword,
-  verifyEmail,
 } from "@/lib/auth/service";
 import { createPrismaAuthStore } from "@/lib/auth/prisma-store";
 import { getAuthorization } from "@/lib/auth/authorization";
@@ -21,9 +17,8 @@ async function requestAddress(): Promise<string> {
   return clientAddress(headerStore, trustedProxyHops(process.env.TRUSTED_PROXY_HOPS));
 }
 
-function limited(kind: string, address: string, email: string): boolean {
-  const limiter = kind === "register" ? registerLimiter : tokenLimiter;
-  return !limiter.allow(rateKey([kind, address, email.toLocaleLowerCase()]), Date.now());
+function limited(address: string, email: string): boolean {
+  return !registerLimiter.allow(rateKey(["register", address, email.toLocaleLowerCase()]), Date.now());
 }
 
 export async function registerAction(
@@ -32,7 +27,7 @@ export async function registerAction(
 ): Promise<PublicResult> {
   const email = String(formData.get("email") ?? "");
   const address = await requestAddress();
-  if (limited("register", address, email)) {
+  if (limited(address, email)) {
     return { error: true, message: RATE_LIMITED };
   }
   return registerAccount(
@@ -46,60 +41,6 @@ export async function registerAction(
   );
 }
 
-export async function requestVerificationAction(
-  _previous: PublicResult,
-  formData: FormData,
-): Promise<PublicResult> {
-  const email = String(formData.get("email") ?? "");
-  const address = await requestAddress();
-  if (limited("verify-request", address, email)) {
-    return { error: true, message: RATE_LIMITED };
-  }
-  return requestVerification(createPrismaAuthStore(), email, new Date());
-}
-
-export async function verifyEmailAction(
-  _previous: PublicResult,
-  formData: FormData,
-): Promise<PublicResult> {
-  const token = String(formData.get("token") ?? "");
-  const address = await requestAddress();
-  if (limited("verify", address, "token")) {
-    return { error: true, message: RATE_LIMITED };
-  }
-  return verifyEmail(createPrismaAuthStore(), token, new Date());
-}
-
-export async function requestResetAction(
-  _previous: PublicResult,
-  formData: FormData,
-): Promise<PublicResult> {
-  const email = String(formData.get("email") ?? "");
-  const address = await requestAddress();
-  if (limited("reset-request", address, email)) {
-    return { error: true, message: RATE_LIMITED };
-  }
-  return requestPasswordReset(createPrismaAuthStore(), email, new Date());
-}
-
-export async function resetPasswordAction(
-  _previous: PublicResult,
-  formData: FormData,
-): Promise<PublicResult> {
-  const address = await requestAddress();
-  if (limited("reset", address, "token")) {
-    return { error: true, message: RATE_LIMITED };
-  }
-  return resetPassword(
-    createPrismaAuthStore(),
-    {
-      token: String(formData.get("token") ?? ""),
-      password: String(formData.get("password") ?? ""),
-    },
-    new Date(),
-  );
-}
-
 export async function changePasswordAction(
   _previous: PublicResult,
   formData: FormData,
@@ -107,7 +48,7 @@ export async function changePasswordAction(
   const authorization = await getAuthorization();
   if (!authorization) return { error: true, message: "Sign in again before changing the password." };
   const address = await requestAddress();
-  if (limited("password", address, authorization.userId)) {
+  if (!tokenLimiter.allow(rateKey(["password", address, authorization.userId]), Date.now())) {
     return { error: true, message: RATE_LIMITED };
   }
   return changeOwnPassword(

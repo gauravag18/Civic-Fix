@@ -6,12 +6,11 @@ export type StoredUser = {
   name: string;
   accountStatus: AccountStatus;
   disabledAt: Date | null;
-  emailVerifiedAt: Date | null;
   passwordHash: string | null;
   passwordChangedAt: Date | null;
   passwordCreatedAt?: Date | null;
   // True only when the staff.provision audit records admin activation.
-  // Public registration never sets this, and emailVerifiedAt stays null.
+  // Used to require replacement of the initial password. Registration never sets it.
   adminProvisioned?: boolean;
 };
 
@@ -19,8 +18,6 @@ export type RegisterInput = {
   email: string;
   name: string;
   passwordHash: string;
-  verificationTokenHash: Buffer;
-  verificationExpiresAt: Date;
   now: Date;
 };
 
@@ -35,31 +32,6 @@ export type AuthStore = {
     name: string;
     now: Date;
   }): Promise<{ status: "created"; userId: string } | { status: "duplicate" } | { status: "role_missing" }>;
-  issueVerificationToken(input: {
-    email: string;
-    tokenHash: Buffer;
-    expiresAt: Date;
-    now: Date;
-  }): Promise<"issued" | "absent" | "already_verified">;
-  consumeVerificationToken(
-    tokenHash: Buffer,
-    now: Date,
-  ): Promise<"verified" | "invalid">;
-  issueResetToken(input: {
-    email: string;
-    tokenHash: Buffer;
-    expiresAt: Date;
-    now: Date;
-  }): Promise<"issued" | "absent" | "ineligible">;
-  findResetAccount(
-    tokenHash: Buffer,
-    now: Date,
-  ): Promise<{ email: string; name: string } | null>;
-  consumeResetToken(input: {
-    tokenHash: Buffer;
-    passwordHash: string;
-    now: Date;
-  }): Promise<"reset" | "invalid">;
   activeRoleCodes(userId: string): Promise<string[]>;
   activeDepartmentId(userId: string): Promise<string | null>;
   grantRole(input: {
@@ -93,13 +65,11 @@ export function isAdminProvisionedMetadata(metadata: unknown): boolean {
   return value.activation === "admin-activated" && value.emailVerified === "false";
 }
 
-// Public accounts must confirm their email. Admin-provisioned staff may sign in
-// while emailVerifiedAt is null. That exception comes only from the provision audit.
+// Active accounts can sign in. Suspended and disabled accounts cannot.
+// A password account needs both the hash and its change time. A Google-only
+// account has neither and stays eligible while the account is active.
 export function isEligible(user: StoredUser): boolean {
-  const identityAccepted = user.emailVerifiedAt !== null || user.adminProvisioned === true;
-  if (user.accountStatus !== "ACTIVE" || user.disabledAt !== null || !identityAccepted) {
-    return false;
-  }
+  if (user.accountStatus !== "ACTIVE" || user.disabledAt !== null) return false;
   if (user.passwordHash !== null || user.passwordChangedAt !== null) {
     return user.passwordHash !== null && user.passwordChangedAt !== null;
   }

@@ -1,6 +1,7 @@
 import { Capability, hasCapability } from "@/lib/auth/capabilities";
 import { getAuthorization } from "@/lib/auth/authorization";
-import { readIssueImage } from "@/lib/issues/image-files";
+import { readIssueImage } from "@/lib/issues/image-storage";
+import { createIssueImageStore } from "@/lib/issues/supabase-images";
 import { canReadIssueImage, downloadName, isAllowedImageMime } from "@/lib/issues/image-rules";
 import { isUuid } from "@/lib/issues/validate";
 import { getPrismaClient } from "@/lib/prisma";
@@ -61,7 +62,7 @@ export async function GET(
     });
     if (!allowed) return new Response(null, { status: 404 });
 
-    const bytes = await readIssueImage(image.storageKey);
+    const bytes = await readIssueImage(image.storageKey, createIssueImageStore());
     if (!bytes) return new Response(null, { status: 404 });
     return new Response(Buffer.from(bytes), {
       status: 200,

@@ -58,7 +58,9 @@ That script upserts eight status pairs. A later run does not change an existing 
 
 Before a staff account can use the queue, an administrator creates a department at `/admin/departments/new`, then provisions staff at `/admin/users/new` or adds an existing eligible staff member from the department page. The application does not create departments, staff, or memberships during build, startup, or seeding.
 
-Staff provisioning does not confirm the email address and does not set `emailVerifiedAt`. The audit action `staff.provision` records `activation: admin-activated` and `emailVerified: false`. That audit is the only reason the account can sign in before email confirmation. Public registration still requires the email verification flow. The account receives `DEPARTMENT_STAFF` only. There is no database field for a mandatory password change, so the initial password is detected by `passwordChangedAt` still matching credential creation time. The staff member must replace it at `/account/password` before `/department` opens. The administrator has to deliver the initial password through a separate secure channel. The password is not stored in the page, the URL, or the logs.
+Staff provisioning creates a `DEPARTMENT_STAFF` account and can add one active department membership in the same step. The audit action `staff.provision` records `activation: admin-activated` and `emailVerified: false`. That audit is how the application recognizes an initial password that must be replaced. The account receives `DEPARTMENT_STAFF` only. There is no database field for a mandatory password change, so the initial password is detected by `passwordChangedAt` still matching credential creation time. The staff member must replace it at `/account/password` before `/department` opens. The administrator has to deliver the initial password through a separate secure channel. The password is not stored in the page, the URL, or the logs.
+
+There is no email delivery and no self-service password reset. A signed-in user changes a password at `/account/password`. A forgotten citizen password cannot be recovered in the application. An administrator can provision a new staff account with an initial password.
 
 ## Administration
 
@@ -74,7 +76,7 @@ Preconditions:
 - No active administrator exists.
 - You set `BOOTSTRAP_ADMIN_CONFIRM=yes`, plus an email, name, and password, in the process environment. Do not put the password in `.env`.
 
-The password is hashed with the application Argon2id settings. The command sets `emailVerifiedAt` to the account creation time so this one account can sign in when mail is not configured. Normal registration still requires email verification. The account receives `ADMINISTRATOR` and, when that role is already seeded, `CITIZEN`. A second run refuses without creating another account.
+The password is hashed with the application Argon2id settings. The account can sign in immediately. The account receives `ADMINISTRATOR` and, when that role is already seeded, `CITIZEN`. A second run refuses without creating another account.
 
 From `my-app` in PowerShell:
 
@@ -89,7 +91,7 @@ Remove-Item Env:BOOTSTRAP_ADMIN_PASSWORD
 
 ## Photographs and notifications
 
-Citizens can attach up to 4 JPEG, PNG, or WebP photographs, 5 MB each, when submitting a report. The server checks the file bytes, stores them under generated names in `data/issue-images` (or `ISSUE_IMAGE_DIR`), and records only that key on the issue. Files are not in the public web root. A signed-in user can load a photograph only when they reported the issue or can already open it in their department queue. A missing file is shown as unavailable.
+Citizens can attach up to 4 JPEG, PNG, or WebP photographs, 5 MB each, when submitting a report. The server checks the file bytes, stores them in the private Supabase bucket named by `SUPABASE_STORAGE_BUCKET` under generated object names, and records only that key on the issue. The bucket is not public, and the application does not store a permanent image URL. A signed-in user can load a photograph only when they reported the issue or can already open it in their department queue. A missing file is shown as unavailable. Photographs are not written to `data/issue-images`.
 
 That directory lasts across restarts on a normal disk. It is not durable on a host that replaces the filesystem at deploy time. No external storage account is required.
 

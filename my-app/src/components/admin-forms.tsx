@@ -151,7 +151,7 @@ export function MembershipAddForm({
           ))}
         </select>
         <p className="text-small text-muted-foreground">
-          Only verified, active department staff without a current membership are listed.
+          Only active department staff without a current membership are listed.
         </p>
       </div>
       <Button type="submit" disabled={pending || staff.length === 0} className="w-full sm:w-auto">
