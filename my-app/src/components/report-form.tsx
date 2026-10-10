@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Severity } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { submitIssue, type IssueFormState } from "@/lib/issues/actions";
 import { severityLabel } from "@/lib/issues/labels";
 import type { IssueCategoryOption } from "@/lib/issues/types";
+import { parseCoordinatePair } from "@/lib/issues/validate";
+
+const LocationMap = dynamic(
+  () => import("@/components/maps/issue-location-map").then((module) => module.IssueLocationMap),
+  {
+    ssr: false,
+    loading: () => (
+      <p role="status" className="flex h-72 items-center rounded-md border border-border bg-card px-4 text-sm text-muted-foreground">
+        Loading map
+      </p>
+    ),
+  },
+);
 
 const initial: IssueFormState = { message: "", fieldErrors: {} };
 
@@ -26,7 +40,13 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-export function ReportForm({ categories }: { categories: IssueCategoryOption[] }) {
+export function ReportForm({
+  categories,
+  tiles,
+}: {
+  categories: IssueCategoryOption[];
+  tiles: { url: string; attribution: string };
+}) {
   const [state, formAction, pending] = useActionState(submitIssue, initial);
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -53,7 +73,7 @@ export function ReportForm({ categories }: { categories: IssueCategoryOption[] }
       (position) => {
         setLatitude(position.coords.latitude.toFixed(6));
         setLongitude(position.coords.longitude.toFixed(6));
-        setLocationNote("Coordinates filled from this device. Check them before submitting.");
+        setLocationNote("Coordinates filled from this device after you asked. Check the point on the map. It is not a verified street address.");
       },
       () => {
         setLocationNote("Coordinates were not available. Enter them if you know them.");
@@ -241,10 +261,19 @@ export function ReportForm({ categories }: { categories: IssueCategoryOption[] }
       </div>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="text-label font-semibold">Coordinates</legend>
+        <legend className="text-label font-semibold">Map location</legend>
         <p id="coordinates-hint" className="text-small text-muted-foreground">
-          Optional. Leave both blank, or provide both.
+          Click the map or drag the marker to choose the issue location. The point is the place you selected. It is not a verified street address. You can also type both coordinates, or leave both blank. Street and city stay required.
         </p>
+        <LocationMap
+          tiles={tiles}
+          point={parseCoordinatePair(latitude, longitude)}
+          onPick={(nextLatitude, nextLongitude) => {
+            setLatitude(nextLatitude);
+            setLongitude(nextLongitude);
+            setLocationNote("Selected on the map. This point is not a verified street address.");
+          }}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="latitude">Latitude</Label>
@@ -275,6 +304,11 @@ export function ReportForm({ categories }: { categories: IssueCategoryOption[] }
             <FieldError id="longitude-error" message={errors.longitude} />
           </div>
         </div>
+        {parseCoordinatePair(latitude, longitude) ? (
+          <p role="status" className="text-small">
+            Selected point: {latitude}, {longitude}
+          </p>
+        ) : null}
         <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={readDeviceLocation}>
           Use this device&apos;s location
         </Button>

@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { StatusMark } from "@/components/issue-mark";
+import { ExploreBrowser } from "@/components/maps/explore-browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { publicExploreHref } from "@/lib/issues/discovery";
-import { formatWhen, statusLabel } from "@/lib/issues/labels";
+import { publicExploreHref, publicMapItem } from "@/lib/issues/discovery";
+import { statusLabel } from "@/lib/issues/labels";
 import { EXPLORE_INVALID, EXPLORE_UNAVAILABLE } from "@/lib/issues/messages";
 import { loadExplore } from "@/lib/issues/queries";
-import type { IssueStatusValue, PublicListFilters } from "@/lib/issues/types";
+import { mapTileConfig } from "@/lib/maps/tiles";
+import type { PublicListFilters } from "@/lib/issues/types";
 import { IssueStatus } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export default async function ExplorePage({
 }) {
   const params = await searchParams;
   const loaded = await loadExplore(params);
+  const tiles = mapTileConfig();
   const result = loaded.result;
   const filters: PublicListFilters = result.ok
     ? result.filters
@@ -91,40 +93,21 @@ export default async function ExplorePage({
 
       {!result.ok && result.reason === "invalid" ? <p role="alert">{EXPLORE_INVALID}</p> : null}
       {!result.ok && result.reason === "unavailable" ? <p role="alert">{EXPLORE_UNAVAILABLE}</p> : null}
-      {result.ok && result.total === 0 ? (
-        <p className="rounded-md border border-border bg-card px-4 py-6">
-          {filtered ? "No published reports match this search." : "No reports have been published."}
-        </p>
+      {result.ok ? (
+        <ExploreBrowser
+          tiles={tiles}
+          items={result.items.map(publicMapItem)}
+          emptyMessage={filtered ? "No published reports match this search." : "No reports have been published."}
+        />
       ) : null}
       {result.ok && result.total > 0 ? (
-        <>
-          <ol className="grid gap-4 sm:grid-cols-2">
-            {result.items.map((issue) => (
-              <li key={issue.id} className="rounded-md border border-border bg-card px-4 py-4">
-                <h2 className="text-subsection font-semibold">
-                  <Link href={`/explore/${issue.id}`}>{issue.title}</Link>
-                </h2>
-                <p className="mt-2">
-                  <StatusMark status={issue.status as IssueStatusValue} />
-                </p>
-                <p className="mt-2 text-small text-muted-foreground">
-                  {issue.categoryName}
-                  {" · "}
-                  {issue.locality ? `${issue.locality}, ${issue.city}` : issue.city}
-                  {" · "}
-                  <time dateTime={issue.createdAt.toISOString()}>{formatWhen(issue.createdAt)} UTC</time>
-                </p>
-              </li>
-            ))}
-          </ol>
-          <nav aria-label="Pages" className="flex flex-wrap items-center gap-4 text-small">
-            <p>
-              Page {result.page} of {lastPage}
-            </p>
-            {result.page > 1 ? <Link href={publicExploreHref(filters, result.page - 1)}>Previous</Link> : null}
-            {result.page < lastPage ? <Link href={publicExploreHref(filters, result.page + 1)}>Next</Link> : null}
-          </nav>
-        </>
+        <nav aria-label="Pages" className="flex flex-wrap items-center gap-4 text-small">
+          <p>
+            Page {result.page} of {lastPage}
+          </p>
+          {result.page > 1 ? <Link href={publicExploreHref(filters, result.page - 1)}>Previous</Link> : null}
+          {result.page < lastPage ? <Link href={publicExploreHref(filters, result.page + 1)}>Next</Link> : null}
+        </nav>
       ) : null}
     </main>
   );

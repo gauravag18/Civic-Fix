@@ -60,6 +60,56 @@ export function publicIssueKeys(): readonly string[] {
   return PUBLIC_KEYS;
 }
 
+export type PublicMapItem = {
+  id: string;
+  title: string;
+  categoryName: string;
+  locality: string | null;
+  city: string;
+  status: IssueStatusValue;
+  createdAt: string;
+};
+
+const MAP_ITEM_KEYS = [
+  "id",
+  "title",
+  "categoryName",
+  "locality",
+  "city",
+  "status",
+  "createdAt",
+] as const;
+
+export function publicMapItem(card: PublicIssueCard): PublicMapItem {
+  return {
+    id: card.id,
+    title: card.title,
+    categoryName: card.categoryName,
+    locality: card.locality,
+    city: card.city,
+    status: card.status,
+    createdAt: card.createdAt.toISOString(),
+  };
+}
+
+export function publicMapItemKeys(): readonly string[] {
+  return MAP_ITEM_KEYS;
+}
+
+export const EXACT_COORDINATES_ARE_PRIVATE = "exact-coordinates-are-private";
+
+export function publicMapPlacement(cards: readonly PublicIssueCard[]): {
+  placed: [];
+  withheld: number;
+  reason: typeof EXACT_COORDINATES_ARE_PRIVATE;
+} {
+  return {
+    placed: [],
+    withheld: cards.length,
+    reason: EXACT_COORDINATES_ARE_PRIVATE,
+  };
+}
+
 export function parsePublicQuery(
   input: PublicQueryInput,
 ): { ok: true; filters: PublicListFilters; page: number } | { ok: false; reason: "invalid" } {

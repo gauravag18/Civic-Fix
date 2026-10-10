@@ -77,6 +77,16 @@ export function isUuid(value: string): boolean {
   return UUID.test(value);
 }
 
+export function parseCoordinatePair(
+  latitudeRaw: string,
+  longitudeRaw: string,
+): { latitude: number; longitude: number } | null {
+  const latitude = coordinate(latitudeRaw, -90, 90);
+  const longitude = coordinate(longitudeRaw, -180, 180);
+  if (!latitude || !longitude) return null;
+  return { latitude: Number(latitude), longitude: Number(longitude) };
+}
+
 export function validateIssueFields(
   input: RawIssueFields,
 ): { ok: true; value: ValidIssueFields } | { ok: false; fieldErrors: IssueFieldErrors } {
