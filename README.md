@@ -4,6 +4,17 @@ Civic issue reporting and resolution for citizens, department staff, and adminis
 
 CivicFix is the workspace where a resident files a street, sanitation, water, or safety report, a department takes it through a controlled status path, and an administrator can review the record without bypassing authorization. The interface uses a warm cream and espresso theme. Location is text the citizen types. Precise coordinates are not collected on the report form and are not shown on public pages.
 
+## Testing
+
+Sign in at `/login`.
+
+| Field | Value |
+| --- | --- |
+| Email | `admin@gmail.com` |
+| Password | `admin@civicfix-2` |
+
+This administrator can open `/admin`.
+
 ## System design
 
 CivicFix is a **three-tier layered monolith** with **role-based access control**.
