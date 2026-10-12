@@ -76,13 +76,7 @@ export const PUBLICATION_CONFIRM = "Confirm which details will be public before 
 
 export const PUBLICATION_UNAVAILABLE = "This publication change could not be saved. Try again.";
 
-export const PUBLICATION_LOAD = "Publishing could not be loaded.";
-
 export const PUBLICATION_RATE_LIMITED =
   "Too many publication changes were submitted. Wait and try again.";
 
 export const PUBLICATION_MISSING = "This report is not available.";
-
-export const EXPLORE_INVALID = "Check the search and try again.";
-
-export const EXPLORE_UNAVAILABLE = "Published reports could not be loaded.";
