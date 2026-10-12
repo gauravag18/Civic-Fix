@@ -4,29 +4,52 @@ Civic issue reporting and resolution for citizens, department staff, and adminis
 
 CivicFix is the workspace where a resident files a street, sanitation, water, or safety report, a department takes it through a controlled status path, and an administrator can review the record without bypassing authorization. The interface uses a warm cream and espresso theme. Location is text the citizen types. Precise coordinates are not collected on the report form and are not shown on public pages.
 
-## Architecture
+## System design
 
-The browser talks to a Next.js App Router server. Sessions are JSON Web Tokens. Issue rows, status history, memberships, and audit logs live in PostgreSQL. Photograph bytes live in a private storage bucket. The database stores only the object key.
+CivicFix is a **three-tier layered monolith** with **role-based access control**.
+
+One Next.js deployment owns the presentation tier and the application tier. PostgreSQL is the system of record. A private object store holds photograph bytes, and the database keeps only the object key. The issue lifecycle is a state machine: a status change is accepted only when `StatusTransition` contains that pair. Status history and the audit log are append-only rows in the same database. CivicFix is not a microservice system, and it does not put a cache in front of the database.
 
 ```mermaid
-flowchart LR
-  Browser["Browser"]
-  Next["Next.js server"]
-  Auth["NextAuth JWT"]
-  Prisma["Prisma"]
-  Neon["PostgreSQL"]
-  Storage["Private object storage"]
+flowchart TB
+  subgraph people [Actors]
+    Citizen[Citizen]
+    Staff[Department staff]
+    Administrator[Administrator]
+  end
 
-  Browser --> Next
-  Next --> Auth
-  Next --> Prisma
-  Prisma --> Neon
-  Next --> Storage
+  subgraph presentation [Presentation tier]
+    Pages[App Router pages and forms]
+  end
+
+  subgraph application [Application tier]
+    Actions[Server Actions]
+    ImageRoute[Photograph route]
+    Guard[Session and capability checks]
+    Services[Issue, department, admin, and analytics services]
+    Actions --> Guard
+    ImageRoute --> Guard
+    Guard --> Services
+  end
+
+  subgraph data [Data tier]
+    Database[(PostgreSQL)]
+    Photographs[(Private object storage)]
+  end
+
+  Citizen --> Pages
+  Staff --> Pages
+  Administrator --> Pages
+  Pages --> Actions
+  Pages --> ImageRoute
+  Services --> Database
+  Services --> Photographs
+  ImageRoute --> Photographs
 ```
 
 | Concern | How it works | What that protects |
 | --- | --- | --- |
-| Identity | Credentials session, optional Google sign-in | Role and department come from the server, not the form |
+| Identity | Credentials session signed as a JWT | Role and department come from the server, not the form |
 | Reports | One transaction for the issue, location, and opening history | A failed write does not leave a partial report |
 | Photographs | Magic-byte check, private bucket, UUID object key | The reporter or the assigned department can read the file |
 | Department work | Active membership plus an allowed status pair | Staff cannot jump a report into an illegal status |
@@ -56,6 +79,160 @@ flowchart TD
 ```
 
 Status changes follow the seeded pairs: Reported can move to Under review or Assigned, then through Verified, In progress, Resolved, and Closed. Reopening and rejection stay closed unless a later pair is added, and those paths require a reason.
+
+## Data model
+
+The PostgreSQL schema is relational. Foreign keys use `ON DELETE RESTRICT`, so a user, department, category, or issue cannot be removed while another row still points at it. An issue deletion hides the row and its photographs. It does not erase history.
+
+`StatusTransition` has no foreign key. It is the allowed-pair table the department service checks before a status write.
+
+```mermaid
+erDiagram
+  User ||--o{ UserRole : receives
+  Role ||--o{ UserRole : grants
+  User |o--o{ UserRole : assigns
+  User ||--o{ DepartmentMembership : joins
+  Department ||--o{ DepartmentMembership : employs
+  User ||--o| UserCredential : has
+  User ||--o{ Session : opens
+  User |o--o{ AuditLog : performs
+
+  User ||--o{ Issue : reports
+  IssueCategory ||--o{ Issue : classifies
+  Location ||--o| Issue : describes
+  Issue ||--o{ IssueImage : includes
+  User ||--o{ IssueImage : uploads
+  Issue ||--o{ IssueComment : has
+  User ||--o{ IssueComment : writes
+  User |o--o{ IssueComment : removes
+  Issue ||--o{ IssueVote : collects
+  User ||--o{ IssueVote : casts
+  Issue ||--o{ IssueAssignment : receives
+  Department ||--o{ IssueAssignment : owns
+  User |o--o{ IssueAssignment : is_assigned
+  User ||--o{ IssueAssignment : assigns
+  Issue ||--o{ IssueStatusHistory : tracks
+  User ||--o{ IssueStatusHistory : changes
+  User ||--o{ Notification : is_sent
+  Issue |o--o{ Notification : concerns
+  IssueComment |o--o{ Notification : concerns
+
+  User {
+    uuid id PK
+    string email UK
+    string name
+    enum accountStatus
+  }
+  Role {
+    uuid id PK
+    string code UK
+    string name
+  }
+  UserRole {
+    uuid id PK
+    uuid userId FK
+    uuid roleId FK
+    uuid assignedById FK
+    datetime revokedAt
+  }
+  Department {
+    uuid id PK
+    string code UK
+    string name UK
+    boolean isActive
+  }
+  DepartmentMembership {
+    uuid id PK
+    uuid userId FK
+    uuid departmentId FK
+    datetime endedAt
+  }
+  UserCredential {
+    uuid id PK
+    uuid userId FK
+    string passwordHash
+  }
+  Session {
+    uuid id PK
+    uuid userId FK
+    bytes tokenHash UK
+    datetime expiresAt
+  }
+  IssueCategory {
+    uuid id PK
+    string code UK
+    string name UK
+    boolean isActive
+  }
+  Issue {
+    uuid id PK
+    uuid categoryId FK
+    uuid reporterId FK
+    uuid locationId FK
+    enum severity
+    enum status
+    datetime deletedAt
+  }
+  Location {
+    uuid id PK
+    string city
+    string locality
+    decimal latitude
+    decimal longitude
+  }
+  IssueImage {
+    uuid id PK
+    uuid issueId FK
+    uuid uploadedById FK
+    string storageKey UK
+    datetime deletedAt
+  }
+  IssueComment {
+    uuid id PK
+    uuid issueId FK
+    uuid authorId FK
+    uuid deletedById FK
+  }
+  IssueVote {
+    uuid issueId PK
+    uuid userId PK
+  }
+  IssueAssignment {
+    uuid id PK
+    uuid issueId FK
+    uuid departmentId FK
+    uuid assigneeId FK
+    uuid assignedById FK
+    datetime endedAt
+  }
+  IssueStatusHistory {
+    uuid id PK
+    uuid issueId FK
+    uuid changedById FK
+    enum fromStatus
+    enum toStatus
+  }
+  StatusTransition {
+    enum fromStatus PK
+    enum toStatus PK
+  }
+  Notification {
+    uuid id PK
+    uuid recipientId FK
+    uuid issueId FK
+    uuid commentId FK
+    enum type
+    datetime readAt
+  }
+  AuditLog {
+    uuid id PK
+    uuid actorId FK
+    string action
+    string entityType
+    uuid entityId
+    json metadata
+  }
+```
 
 ## Who uses it
 
@@ -107,7 +284,6 @@ Copy `.env.example` to `.env` inside `my-app`. Every variable is server-only. Do
 | `NEXTAUTH_SECRET` or `AUTH_SECRET` | Yes | Signs the session cookie |
 | `NEXTAUTH_URL` | Yes | Public origin, with no path, such as `http://localhost:3000` |
 | `TRUSTED_PROXY_HOPS` | Yes | How many proxies may append `X-Forwarded-For` |
-| `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` | No | Google sign-in. Leave both empty to hide it |
 | `SUPABASE_URL` | Yes, for photographs | Storage project URL |
 | `SUPABASE_SECRET_KEY` | Yes, for photographs | Server-only storage key |
 | `SUPABASE_STORAGE_BUCKET` | Yes, for photographs | Private bucket name |
