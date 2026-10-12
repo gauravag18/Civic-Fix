@@ -236,6 +236,8 @@ erDiagram
   }
 ```
 
+Download the diagram: [../doc/civicfix-er-diagram.png](../doc/civicfix-er-diagram.png). A scalable copy is [../doc/civicfix-er-diagram.svg](../doc/civicfix-er-diagram.svg).
+
 ## Who uses it
 
 **Citizens** register, file a report, and follow it from My issues. They cannot change status, assign a department, or open another person's report.

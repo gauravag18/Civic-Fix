@@ -1,0 +1,145 @@
+erDiagram
+  User ||--o{ UserRole : receives
+  Role ||--o{ UserRole : grants
+  User |o--o{ UserRole : assigns
+  User ||--o{ DepartmentMembership : joins
+  Department ||--o{ DepartmentMembership : employs
+  User ||--o| UserCredential : has
+  User ||--o{ Session : opens
+  User |o--o{ AuditLog : performs
+
+  User ||--o{ Issue : reports
+  IssueCategory ||--o{ Issue : classifies
+  Location ||--o| Issue : describes
+  Issue ||--o{ IssueImage : includes
+  User ||--o{ IssueImage : uploads
+  Issue ||--o{ IssueComment : has
+  User ||--o{ IssueComment : writes
+  User |o--o{ IssueComment : removes
+  User ||--o{ IssueVote : casts
+  Issue ||--o{ IssueVote : collects
+  Issue ||--o{ IssueAssignment : receives
+  Department ||--o{ IssueAssignment : owns
+  User |o--o{ IssueAssignment : is_assigned
+  User ||--o{ IssueAssignment : assigns
+  Issue ||--o{ IssueStatusHistory : tracks
+  User ||--o{ IssueStatusHistory : changes
+  User ||--o{ Notification : is_sent
+  Issue |o--o{ Notification : concerns
+  IssueComment |o--o{ Notification : concerns
+
+  User {
+    uuid id PK
+    string email UK
+    string name
+    enum accountStatus
+  }
+  Role {
+    uuid id PK
+    string code UK
+    string name
+  }
+  UserRole {
+    uuid id PK
+    uuid userId FK
+    uuid roleId FK
+    uuid assignedById FK
+    datetime revokedAt
+  }
+  Department {
+    uuid id PK
+    string code UK
+    string name UK
+    boolean isActive
+  }
+  DepartmentMembership {
+    uuid id PK
+    uuid userId FK
+    uuid departmentId FK
+    datetime endedAt
+  }
+  UserCredential {
+    uuid id PK
+    uuid userId FK
+    string passwordHash
+  }
+  Session {
+    uuid id PK
+    uuid userId FK
+    bytes tokenHash UK
+    datetime expiresAt
+  }
+  IssueCategory {
+    uuid id PK
+    string code UK
+    string name UK
+    boolean isActive
+  }
+  Issue {
+    uuid id PK
+    uuid categoryId FK
+    uuid reporterId FK
+    uuid locationId FK
+    enum severity
+    enum status
+    datetime deletedAt
+  }
+  Location {
+    uuid id PK
+    string city
+    string locality
+    decimal latitude
+    decimal longitude
+  }
+  IssueImage {
+    uuid id PK
+    uuid issueId FK
+    uuid uploadedById FK
+    string storageKey UK
+    datetime deletedAt
+  }
+  IssueComment {
+    uuid id PK
+    uuid issueId FK
+    uuid authorId FK
+    uuid deletedById FK
+  }
+  IssueVote {
+    uuid issueId PK
+    uuid userId PK
+  }
+  IssueAssignment {
+    uuid id PK
+    uuid issueId FK
+    uuid departmentId FK
+    uuid assigneeId FK
+    uuid assignedById FK
+    datetime endedAt
+  }
+  IssueStatusHistory {
+    uuid id PK
+    uuid issueId FK
+    uuid changedById FK
+    enum fromStatus
+    enum toStatus
+  }
+  StatusTransition {
+    enum fromStatus PK
+    enum toStatus PK
+  }
+  Notification {
+    uuid id PK
+    uuid recipientId FK
+    uuid issueId FK
+    uuid commentId FK
+    enum type
+    datetime readAt
+  }
+  AuditLog {
+    uuid id PK
+    uuid actorId FK
+    string action
+    string entityType
+    uuid entityId
+    json metadata
+  }
