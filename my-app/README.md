@@ -1,84 +1,127 @@
 # CivicFix
 
-Community-powered civic issue reporting and resolution platform.
+Civic issue reporting and resolution for citizens, department staff, and administrators.
 
-## Stack
+CivicFix is the workspace where a resident files a street, sanitation, water, or safety report, a department takes it through a controlled status path, and an administrator can review the record without bypassing authorization. The interface uses a warm cream and espresso theme. Location is text the citizen types. Precise coordinates are not collected on the report form and are not shown on public pages.
 
-Next.js (App Router), React, TypeScript, Tailwind CSS.
+The repository overview is also in the parent [README](../README.md). Commands on this page run from `my-app`.
+
+## Architecture
+
+The browser talks to a Next.js App Router server. Sessions are JSON Web Tokens. Issue rows, status history, memberships, and audit logs live in PostgreSQL. Photograph bytes live in a private storage bucket. The database stores only the object key.
+
+```mermaid
+flowchart LR
+  Browser["Browser"]
+  Next["Next.js server"]
+  Auth["NextAuth JWT"]
+  Prisma["Prisma"]
+  Neon["PostgreSQL"]
+  Storage["Private object storage"]
+
+  Browser --> Next
+  Next --> Auth
+  Next --> Prisma
+  Prisma --> Neon
+  Next --> Storage
+```
+
+| Concern | How it works | What that protects |
+| --- | --- | --- |
+| Identity | Credentials session, optional Google sign-in | Role and department come from the server, not the form |
+| Reports | One transaction for the issue, location, and opening history | A failed write does not leave a partial report |
+| Photographs | Magic-byte check, private bucket, UUID object key | The reporter or the assigned department can read the file |
+| Department work | Active membership plus an allowed status pair | Staff cannot jump a report into an illegal status |
+| Administration | Both administrator capabilities required | Signed-out users, citizens, and staff cannot manage or delete reports |
+| Deletion | Exact title, a reason, then hide the row and remove stored files | History and the audit record stay |
+
+Server Actions accept a report body up to 25 MB so four photographs can arrive together. Each file is still limited to 5 MB, and a report still accepts at most four JPEG, PNG, or WebP images.
+
+## System flow
+
+```mermaid
+flowchart TD
+  Register["Citizen registers and signs in"]
+  Report["Files a report with place text and optional photographs"]
+  Mine["Opens My issues and the report"]
+  Queue["Department queue: assigned or available to take"]
+  Work["Assign, update status, add a comment"]
+  History["Status history and audit row"]
+  Admin["Administrator opens Reports"]
+  Delete["Delete only after the exact title and a reason"]
+
+  Register --> Report --> Mine
+  Report --> Queue --> Work --> History
+  Work --> Mine
+  History --> Admin
+  Admin --> Delete
+```
+
+Status changes follow the seeded pairs: Reported can move to Under review or Assigned, then through Verified, In progress, Resolved, and Closed. Reopening and rejection stay closed unless a later pair is added, and those paths require a reason.
+
+## Who uses it
+
+**Citizens** register, file a report, and follow it from My issues. They cannot change status, assign a department, or open another person's report.
+
+**Department staff** open the queue when the account has the staff role and one active membership. They assign work inside their own department, change status only through an allowed pair, and leave a comment the reporter can read. Department analytics stay on that signed-in department.
+
+**Administrators** need both administrator capabilities. They manage departments, categories, and users, read organization analytics, browse every report, and delete one only by typing its title and a reason. A pure administrator does not receive a special pass to photograph bytes. The image route still allows the reporter or the assigned department.
+
+## Tech stack
+
+| Layer | Technology | Role |
+| --- | --- | --- |
+| Framework | Next.js 16, App Router | Pages, Server Actions, and route protection |
+| Language | TypeScript | Application and test code |
+| UI | React 19, Tailwind CSS 4 | Cream and espresso interface |
+| Database | Prisma 7 and PostgreSQL | Issues, accounts, memberships, history, audit |
+| Photographs | Supabase Storage, private bucket | Bytes stay off the public internet |
+| Auth | NextAuth.js 4, Argon2id | JWT sessions and password hashes |
+| Charts | Recharts | Administrator and department analytics |
 
 ## Local development
 
-Requires Node.js 20 or newer.
+Requires Node.js 20 or newer, a PostgreSQL database, and a private storage bucket before photographs will upload.
 
 ```bash
 npm install
+npx prisma generate
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Environment variables
+Apply the existing SQL migrations when the database is empty. Do not reset a database that already holds accounts or reports.
 
-Copy `.env.example` to `.env.local` and fill in values locally. Never commit `.env` files or credentials. All current variables are server-only.
+## Environment
 
-## Scripts
+Copy `.env.example` to `.env`. Every variable is server-only. Do not add a `NEXT_PUBLIC_` prefix, and do not commit the filled file.
 
-- `npm run dev` — start the development server
-- `npm run lint` — run ESLint
-- `npm run build` — create a production build
-- `npm run start` — serve the production build
-- `npm run db:seed-roles` — upsert the four application roles
-- `npm run db:seed-categories` — upsert the reviewed starter issue categories
-- `npm run db:seed-transitions` — upsert the reviewed department status transitions
-- `npm run admin:bootstrap` — create the first administrator when the user table is empty
+| Key | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | Pooled PostgreSQL URL used at runtime |
+| `DIRECT_URL` | Yes | Direct PostgreSQL URL used by the Prisma CLI |
+| `NEXTAUTH_SECRET` or `AUTH_SECRET` | Yes | Signs the session cookie |
+| `NEXTAUTH_URL` | Yes | Public origin, with no path, such as `http://localhost:3000` |
+| `TRUSTED_PROXY_HOPS` | Yes | How many proxies may append `X-Forwarded-For` |
+| `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` | No | Google sign-in. Leave both empty to hide it |
+| `SUPABASE_URL` | Yes, for photographs | Storage project URL |
+| `SUPABASE_SECRET_KEY` | Yes, for photographs | Server-only storage key |
+| `SUPABASE_STORAGE_BUCKET` | Yes, for photographs | Private bucket name |
 
-## Issue categories
+## First data
 
-Citizen reporting needs active `IssueCategory` rows. The application does not insert them automatically and does not create users or sample issues.
-
-Review `src/lib/issues/category-seeds.ts`, then from `my-app` run:
+Seeding and the first administrator are explicit commands. They do not run on install, build, or startup.
 
 ```bash
+npm run db:seed-roles
 npm run db:seed-categories
-```
-
-The script upserts those eight categories by code. A later run refreshes `name` and `sortOrder` for those codes and leaves `isActive` unchanged. It does not delete or edit any other category, and it does not create users, departments, or issues.
-
-## Department workflow
-
-Department staff can open `/department` only when the signed-in account has the department staff role and an active department membership. The application does not create staff users, departments, or sample issues.
-
-Status changes are allowed only when the matching pair exists in `StatusTransition`. Review `src/lib/issues/transition-seeds.ts`, then from `my-app` run:
-
-```bash
 npm run db:seed-transitions
 ```
 
-That script upserts eight status pairs. A later run does not change an existing pair and does not delete any other pair. `REJECTED` and `REOPENED` are not included.
+Role seeding upserts the four roles. Category seeding upserts the eight starter categories and does not delete other categories. Transition seeding inserts the eight allowed status pairs and does not delete other pairs.
 
-Before a staff account can use the queue, an administrator creates a department at `/admin/departments/new`, then provisions staff at `/admin/users/new` or adds an existing eligible staff member from the department page. The application does not create departments, staff, or memberships during build, startup, or seeding.
-
-Staff provisioning creates a `DEPARTMENT_STAFF` account and can add one active department membership in the same step. The account receives `DEPARTMENT_STAFF` only. The department queue opens for an active member without requiring a password change. The administrator has to deliver the initial password through a separate secure channel. The password is not stored in the page, the URL, or the logs. A signed-in staff member can change it at `/account/password`.
-
-There is no email delivery and no self-service password reset. A signed-in user changes a password at `/account/password`. A forgotten citizen password cannot be recovered in the application. An administrator can provision a new staff account with an initial password.
-
-## Administration
-
-`/admin` is available only to an account whose server session has both administrator capabilities. The pages read live database counts and records. There is no public administrator registration.
-
-The first administrator is created only by an explicit local command. It does not run during build, startup, deployment, or seeding, and it is not an HTTP route.
-
-Preconditions:
-
-- `DATABASE_URL` is set.
-- The `ADMINISTRATOR` role already exists (`npm run db:seed-roles`).
-- The user table is empty. Any existing user, including a non-administrator, makes the command refuse.
-- No active administrator exists.
-- You set `BOOTSTRAP_ADMIN_CONFIRM=yes`, plus an email, name, and password, in the process environment. Do not put the password in `.env`.
-
-The password is hashed with the application Argon2id settings. The account can sign in immediately. The account receives `ADMINISTRATOR` and, when that role is already seeded, `CITIZEN`. A second run refuses without creating another account.
-
-From `my-app` in PowerShell:
+The first administrator can be created only while the user table is empty. Set `BOOTSTRAP_ADMIN_CONFIRM=yes` plus the email, name, and password in the process environment for that one command. Do not put the password in `.env`.
 
 ```powershell
 $env:BOOTSTRAP_ADMIN_CONFIRM = "yes"
@@ -89,14 +132,33 @@ npm run admin:bootstrap
 Remove-Item Env:BOOTSTRAP_ADMIN_PASSWORD
 ```
 
-## Photographs and notifications
+There is no email delivery and no self-service password reset. A signed-in person can change a password at `/account/password`. An administrator delivers a new staff password through a separate channel. The department queue opens for an active member without forcing that change.
 
-Citizens can attach up to 4 JPEG, PNG, or WebP photographs, 5 MB each, when submitting a report. The server checks the file bytes, stores them in the private Supabase bucket named by `SUPABASE_STORAGE_BUCKET` under generated object names, and records only that key on the issue. The bucket is not public, and the application does not store a permanent image URL. A signed-in user can load a photograph only when they reported the issue or can already open it in their department queue. A missing file is shown as unavailable. Photographs are not written to `data/issue-images`.
+## Routes
 
-That directory lasts across restarts on a normal disk. It is not durable on a host that replaces the filesystem at deploy time. No external storage account is required.
+| Area | Paths |
+| --- | --- |
+| Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]`, `/account` |
+| Department | `/department`, `/department/issues/[id]`, `/department/analytics` |
+| Administration | `/admin`, `/admin/analytics`, `/admin/departments`, `/admin/categories`, `/admin/users`, `/admin/issues` |
+| Photographs | `/api/issue-images/[imageId]` |
 
-In-app notification rows are still written in the same database transaction as a department action. The application does not show a notifications page. A citizen checks progress by opening My issues and the report.
+Explore and Notifications are not part of the interface. Department updates can still write notification rows. Citizens follow a report from My issues.
 
-## Project structure
+## Checks
 
-- `src/app/` — App Router routes, layouts, and global styles
+```bash
+npm test
+npm run lint
+npx tsc --noEmit
+npm run build
+```
+
+`npm run build` generates the Prisma client and then builds Next.js.
+
+## Project layout
+
+- `src/app/` — routes, layouts, and styles
+- `src/components/` — forms, shell, and analytics views
+- `src/lib/` — authorization, issues, photographs, administration, and analytics
+- `prisma/` — schema, migrations, and explicit seed commands
