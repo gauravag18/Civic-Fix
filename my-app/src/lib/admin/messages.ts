@@ -29,7 +29,7 @@ export const ADMIN_RATE_LIMITED = "Too many administration changes. Wait and try
 export const ADMIN_CONFIRM = "Confirm this change before it is saved.";
 
 export const ADMIN_STAFF_READY =
-  "Staff account created. Email is not confirmed. Give the initial password to this person through a separate secure channel. They must change it after signing in.";
+  "Staff account created. Give the initial password to this person through a separate secure channel. They can change it after signing in.";
 
 export const DELETE_CONFIRM = "Type the report title exactly to confirm deletion.";
 

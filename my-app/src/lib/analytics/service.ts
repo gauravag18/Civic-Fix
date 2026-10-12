@@ -16,7 +16,7 @@ export type AdminAnalyticsResult =
 
 export type DepartmentAnalyticsResult =
   | { ok: true; report: AnalyticsReport }
-  | { ok: false; reason: "signed-out" | "forbidden" | "password" | "invalid-range" | "unavailable" };
+  | { ok: false; reason: "signed-out" | "forbidden" | "invalid-range" | "unavailable" };
 
 export async function loadAdminAnalytics(
   access: AdminAccess,

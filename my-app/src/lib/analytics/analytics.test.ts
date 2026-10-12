@@ -330,7 +330,7 @@ describe("analytics authorization and aggregates", () => {
     assert.equal(result.report.byCategory.some((row) => row.name === "Water"), false);
   });
 
-  it("refuses a department query before reading when membership is missing or locked", async () => {
+  it("refuses a department query before reading when membership is missing", async () => {
     const store = createMemoryAnalyticsStore(issues, departments);
     const signedOut = await loadDepartmentAnalytics(null, { departmentId: "dept-a" }, store, NOW);
     const citizen = await loadDepartmentAnalytics(
@@ -355,18 +355,19 @@ describe("analytics authorization and aggregates", () => {
       store,
       NOW,
     );
+    assert.equal(signedOut.ok, false);
+    assert.equal(citizen.ok, false);
+    if (!citizen.ok) assert.equal(citizen.reason, "forbidden");
+    assert.equal(unlocked.ok, false);
+    if (!unlocked.ok) assert.equal(unlocked.reason, "forbidden");
+    assert.equal(store.reads, 0);
     const password = await loadDepartmentAnalytics(
       { ...staffA, mustChangePassword: true },
       { departmentId: "dept-b" },
       store,
       NOW,
     );
-    assert.equal(signedOut.ok, false);
-    assert.equal(citizen.ok, false);
-    if (!citizen.ok) assert.equal(citizen.reason, "forbidden");
-    assert.equal(unlocked.ok, false);
-    if (!password.ok) assert.equal(password.reason, "password");
-    assert.equal(store.reads, 0);
+    assert.equal(password.ok, true);
   });
 
   it("counts a February resolution for a report filed in January without treating it as filed in February", async () => {

@@ -62,7 +62,7 @@ describe("authentication service", () => {
     assert.equal(LOGIN_FAILURE.length > 0, true);
   });
 
-  it("lets provisioned staff sign in and requires the initial password to be replaced", async () => {
+  it("lets provisioned staff sign in and still change that password", async () => {
     const store = new MemoryAuthStore();
     const stored = await hashPassword(password);
     store.users.push({

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AnalyticsFilter, AnalyticsView } from "@/components/analytics-view";
 import { AppPage } from "@/components/app-page";
 import { loadDepartmentAnalyticsPage } from "@/lib/analytics/queries";
-import { STAFF_FORBIDDEN, STAFF_PASSWORD, STAFF_SIGN_IN, STAFF_UNAVAILABLE } from "@/lib/issues/messages";
+import { STAFF_FORBIDDEN, STAFF_SIGN_IN, STAFF_UNAVAILABLE } from "@/lib/issues/messages";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +30,6 @@ export default async function DepartmentAnalyticsPage({
         </p>
       ) : null}
       {!result.ok && result.reason === "forbidden" ? <p role="status">{STAFF_FORBIDDEN}</p> : null}
-      {!result.ok && result.reason === "password" ? (
-        <p>
-          {STAFF_PASSWORD} <Link href="/account/password">Change password</Link>
-        </p>
-      ) : null}
       {!result.ok && result.reason === "unavailable" ? <p role="alert">{STAFF_UNAVAILABLE}</p> : null}
       {result.ok || result.reason === "invalid-range" ? (
         <AnalyticsFilter path="/department/analytics" from={params.from ?? ""} to={params.to ?? ""} />

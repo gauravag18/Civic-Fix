@@ -5,7 +5,7 @@ import { AssignmentForm, CommentForm, StatusForm } from "@/components/department
 import { SeverityMark, StatusMark } from "@/components/issue-mark";
 import { IssuePhotos } from "@/components/issue-photos";
 import { formatWhen, statusLabel } from "@/lib/issues/labels";
-import { STAFF_FORBIDDEN, STAFF_PASSWORD, STAFF_SIGN_IN, STAFF_UNAVAILABLE } from "@/lib/issues/messages";
+import { STAFF_FORBIDDEN, STAFF_SIGN_IN, STAFF_UNAVAILABLE } from "@/lib/issues/messages";
 import { loadDepartmentIssue } from "@/lib/issues/staff-queries";
 
 export const dynamic = "force-dynamic";
@@ -35,15 +35,6 @@ export default async function DepartmentIssuePage({
     return (
       <AppPage area="department" title="Department report">
         <p role="status">{STAFF_FORBIDDEN}</p>
-      </AppPage>
-    );
-  }
-  if (!result.ok && result.reason === "password") {
-    return (
-      <AppPage area="department" title="Department report">
-        <p>
-          {STAFF_PASSWORD} <Link href="/account/password">Change password</Link>
-        </p>
       </AppPage>
     );
   }

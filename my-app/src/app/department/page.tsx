@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppPage } from "@/components/app-page";
 import { SeverityMark, StatusMark } from "@/components/issue-mark";
 import { formatWhen } from "@/lib/issues/labels";
-import { STAFF_FORBIDDEN, STAFF_PASSWORD, STAFF_SIGN_IN, STAFF_UNAVAILABLE } from "@/lib/issues/messages";
+import { STAFF_FORBIDDEN, STAFF_SIGN_IN, STAFF_UNAVAILABLE } from "@/lib/issues/messages";
 import { loadDepartmentQueue } from "@/lib/issues/staff-queries";
 import type { QueueKind } from "@/lib/issues/staff-service";
 
@@ -48,11 +48,6 @@ export default async function DepartmentPage({
         </p>
       ) : null}
       {!result.ok && result.reason === "forbidden" ? <p role="status">{STAFF_FORBIDDEN}</p> : null}
-      {!result.ok && result.reason === "password" ? (
-        <p>
-          {STAFF_PASSWORD} <Link href="/account/password">Change password</Link>
-        </p>
-      ) : null}
       {!result.ok && result.reason === "unavailable" ? (
         <p role="alert">{STAFF_UNAVAILABLE}</p>
       ) : null}

@@ -70,9 +70,6 @@ export const STAFF_NOT_AVAILABLE = "This report is not available to your departm
 
 export const STAFF_RATE_LIMITED = "Too many department updates were submitted. Wait and try again.";
 
-export const STAFF_PASSWORD =
-  "Change the initial password before using the department queue.";
-
 export const PUBLICATION_SIGN_IN = "Sign in to change whether your report is public.";
 
 export const PUBLICATION_CONFIRM = "Confirm which details will be public before publishing.";
