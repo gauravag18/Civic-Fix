@@ -5,8 +5,7 @@ export const SIGN_IN_FAILURE = "Sign-in did not succeed.";
 export const GOOGLE_UNAVAILABLE =
   "Google sign-in is not available until it is configured.";
 
-export const REGISTER_NEUTRAL =
-  "If this address is new, the citizen account is ready and you can log in.";
+export const REGISTER_NEUTRAL = "Account registered. You can log in.";
 
 export const REGISTRATION_UNAVAILABLE =
   "Registration is unavailable right now.";

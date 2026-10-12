@@ -19,12 +19,15 @@ export function AuthForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
-      {state.message ? (
-        <p role="alert" className={state.error ? "text-destructive" : "text-foreground"}>
+      {state.error && state.message ? (
+        <p role="alert" className="text-destructive">
           {state.message}
         </p>
       ) : null}
       {children}
+      {!state.error && state.message ? (
+        <p role="status">{state.message}</p>
+      ) : null}
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Please wait" : submitLabel}
       </Button>
