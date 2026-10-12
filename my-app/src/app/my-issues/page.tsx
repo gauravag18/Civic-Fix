@@ -17,7 +17,7 @@ export default async function MyIssuesPage({
   const lastPage = result.ok ? Math.max(1, Math.ceil(result.total / result.pageSize)) : 1;
 
   return (
-    <AppPage title="My reports" lede="Reports submitted from this account.">
+    <AppPage title="My issues" lede="Reports submitted from this account. Open one to see updates and comments.">
       {!result.ok && result.reason === "signed-out" ? (
         <p>
           {ISSUE_SIGN_IN} <Link href="/login">Log in</Link>

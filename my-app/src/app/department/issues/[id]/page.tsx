@@ -59,6 +59,9 @@ export default async function DepartmentIssuePage({
   return (
     <AppPage area="department" title={issue.title} lede={issue.categoryName}>
       {updated ? <p role="status">{updated}</p> : null}
+      <p className="text-small text-muted-foreground">
+        Assign the report, then update its status and add a comment the reporter can read.
+      </p>
       <p className="flex flex-wrap items-center gap-2">
         <StatusMark status={issue.status} />
         <SeverityMark severity={issue.severity} />

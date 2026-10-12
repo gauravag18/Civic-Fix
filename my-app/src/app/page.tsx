@@ -9,7 +9,7 @@ const steps = [
   },
   {
     title: "The report is saved as Reported",
-    body: "It stays on your account. You can later publish the title, category, general place, status, and date. A matching report from you in the last two minutes is treated as the same report.",
+    body: "It stays on your account. Open My issues to follow it. A matching report from you in the last two minutes is treated as the same report.",
   },
   {
     title: "A department takes the work",
@@ -17,16 +17,15 @@ const steps = [
   },
   {
     title: "You can follow it here",
-    body: "Status changes and new comments appear on the report and in your notifications. There is no email channel.",
+    body: "Status changes and new comments appear on the report. Open My issues and the report to see them.",
   },
 ];
 
 const capabilities = [
   ["Reporting", "Citizens file a report with a category, severity, location, and optional photographs."],
+  ["My issues", "A citizen opens a submitted report to see its status, photographs, comments, and history."],
   ["Department queue", "Staff see their department’s reports and unassigned reports they are allowed to take."],
-  ["Administration", "Administrators manage departments, categories, and staff accounts."],
-  ["Notifications", "Assignment, status, and comment events stay inside CivicFix for the person they concern."],
-  ["Explore", "A reporter can publish a report’s title, category, locality, city, status, and date. The description, street address, and photographs stay on the private report."],
+  ["Administration", "Administrators manage departments, categories, staff accounts, analytics, and report removal."],
 ];
 
 const statuses = ["Reported", "Under review", "Assigned", "In progress", "Resolved"];
@@ -53,11 +52,6 @@ export default function Home() {
               <Button variant="secondary" asChild>
                 <Link href="#how-it-works" className="no-underline">
                   How it works
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/explore" className="no-underline">
-                  Explore issues
                 </Link>
               </Button>
             </div>
@@ -108,7 +102,7 @@ export default function Home() {
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-12 sm:px-6">
             <h2 className="text-3xl font-semibold tracking-tight">A report keeps its history</h2>
             <p className="max-w-2xl text-primary-foreground/80">
-              Photographs stay with the report. Comments and status changes are recorded. A reporter can publish the title, category, general place, status, and date. The rest of the report stays private.
+              Photographs stay with the report. Comments and status changes are recorded. Open My issues to see the current status.
             </p>
             <ol className="flex flex-col gap-3 sm:flex-row sm:flex-wrap" aria-label="Example status sequence">
               {statuses.map((status, index) => (
@@ -129,7 +123,7 @@ export default function Home() {
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
-            CivicFix does not publish a live map or a count of citywide issues. Published reports are listed on Explore.
+            Open My issues to see the status of a report you submitted.
           </p>
         </section>
 

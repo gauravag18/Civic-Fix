@@ -12,6 +12,7 @@ import { cn } from "cn";
 export type ShellLink = {
   href: string;
   label: string;
+  group?: string;
 };
 
 function activeHref(pathname: string, search: string, href: string): boolean {
@@ -38,26 +39,43 @@ function activeHref(pathname: string, search: string, href: string): boolean {
 }
 
 function NavLinks({ items, pathname, search }: { items: ShellLink[]; pathname: string; search: string }) {
+  const groups: { name: string | null; items: ShellLink[] }[] = [];
+  for (const item of items) {
+    const name = item.group ?? null;
+    const current = groups[groups.length - 1];
+    if (current && current.name === name) current.items.push(item);
+    else groups.push({ name, items: [item] });
+  }
+
   return (
-    <ul className="flex flex-col gap-1">
-      {items.map((item) => {
-        const current = activeHref(pathname, search, item.href);
-        return (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              aria-current={current ? "page" : undefined}
-              className={cn(
-                "block rounded-md px-3 py-2 text-sm font-semibold no-underline",
-                current ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
-              )}
-            >
-              {item.label}
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="flex flex-col gap-4">
+      {groups.map((group) => (
+        <div key={group.name ?? group.items[0]?.href}>
+          {group.name ? (
+            <p className="px-3 pb-1 text-small font-semibold text-muted-foreground">{group.name}</p>
+          ) : null}
+          <ul className="flex flex-col gap-1">
+            {group.items.map((item) => {
+              const current = activeHref(pathname, search, item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={current ? "page" : undefined}
+                    className={cn(
+                      "block rounded-md px-3 py-2 text-sm font-semibold no-underline",
+                      current ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -87,7 +105,7 @@ function ChromeBody({
   signedIn: boolean;
   title: string;
   lede?: string;
-  bell: ReactNode;
+  bell?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -159,7 +177,6 @@ const CRUMB_LABELS: Record<string, string> = {
   "/report": "Report an issue",
   "/my-issues": "My issues",
   "/issues": "Report",
-  "/notifications": "Notifications",
   "/account": "Account",
   "/account/password": "Change password",
   "/department": "Department queue",
@@ -171,7 +188,7 @@ const CRUMB_LABELS: Record<string, string> = {
   "/admin/categories/new": "New category",
   "/admin/users": "Users and staff",
   "/admin/users/new": "Provision staff",
-  "/admin/issues": "Delete a report",
+  "/admin/issues": "Reports",
   "/admin/analytics": "Analytics",
   "/department/analytics": "Department analytics",
 };
@@ -190,7 +207,7 @@ export function AppChrome(props: {
   signedIn: boolean;
   title: string;
   lede?: string;
-  bell: ReactNode;
+  bell?: ReactNode;
   children: ReactNode;
 }) {
   return <ChromeBody {...props} />;

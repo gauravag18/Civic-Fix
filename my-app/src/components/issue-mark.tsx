@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { severityLabel, statusLabel } from "@/lib/issues/labels";
+import { severityLabel, statusLabel, statusProgress } from "@/lib/issues/labels";
 import type { IssueStatusValue, SeverityValue } from "@/lib/issues/types";
 
 function statusVariant(
@@ -22,7 +22,14 @@ function severityVariant(
 }
 
 export function StatusMark({ status }: { status: IssueStatusValue }) {
-  return <Badge variant={statusVariant(status)}>{statusLabel(status)}</Badge>;
+  const progress = statusProgress(status);
+  const label = statusLabel(status);
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <Badge variant={statusVariant(status)}>{label}</Badge>
+      {progress !== label ? <span className="text-small text-muted-foreground">{progress}</span> : null}
+    </span>
+  );
 }
 
 export function SeverityMark({ severity }: { severity: SeverityValue }) {

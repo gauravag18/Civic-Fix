@@ -63,6 +63,10 @@ export function AssignmentForm({
         <Input id="assignment-note" name="note" maxLength={500} autoComplete="off" />
         <p className="text-small text-muted-foreground">Optional. Visible to your department.</p>
       </div>
+      <label className="flex items-start gap-2 text-small">
+        <input type="checkbox" name="confirmAssignment" required className="mt-1" />
+        <span>Confirm this assignment. It decides who is responsible for the report.</span>
+      </label>
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Saving" : "Save assignment"}
       </Button>
@@ -103,6 +107,10 @@ export function StatusForm({
           Required when rejecting or reopening a report.
         </p>
       </div>
+      <label className="flex items-start gap-2 text-small">
+        <input type="checkbox" name="confirmStatus" required className="mt-1" />
+        <span>Confirm this status update. The reporter will see the new status.</span>
+      </label>
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Saving" : "Update status"}
       </Button>

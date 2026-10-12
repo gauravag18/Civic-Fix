@@ -95,7 +95,7 @@ Citizens can attach up to 4 JPEG, PNG, or WebP photographs, 5 MB each, when subm
 
 That directory lasts across restarts on a normal disk. It is not durable on a host that replaces the filesystem at deploy time. No external storage account is required.
 
-In-app notifications are created in the same database transaction as the department action. A citizen is notified when their report status changes or when staff add a comment. The assigned staff member is notified when a report is assigned to them. Open `/notifications` to read them, mark one as read, or mark all as read. There is no email or live push channel.
+In-app notification rows are still written in the same database transaction as a department action. The application does not show a notifications page. A citizen checks progress by opening My issues and the report.
 
 ## Project structure
 

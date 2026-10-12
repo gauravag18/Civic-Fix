@@ -21,7 +21,7 @@ import {
   getCitizenIssue,
   listCitizenIssues,
 } from "@/lib/issues/service";
-import type { RawIssueFields } from "@/lib/issues/validate";
+import { citizenReportInput, type RawIssueFields } from "@/lib/issues/validate";
 
 const now = new Date("2026-10-09T12:00:00.000Z");
 const categoryId = "11111111-1111-4111-8111-111111111111";
@@ -102,6 +102,22 @@ describe("citizen issue reporting", () => {
     assert.equal(store.audits[0]?.ipAddress, "203.0.113.10");
     assert.equal(store.assignments.length, 0);
     assert.equal(result.ok && result.issueId, store.issues[0]?.id);
+  });
+
+  it("saves a new report without coordinates even when a request includes them", async () => {
+    const store = preparedStore();
+    const result = await createCitizenIssue(
+      citizen(),
+      citizenReportInput({ ...valid, latitude: "18.520400", longitude: "73.856700" }),
+      store,
+      now,
+      null,
+    );
+    assert.equal(result.ok, true);
+    assert.equal(store.locations[0]?.latitude, null);
+    assert.equal(store.locations[0]?.longitude, null);
+    assert.equal(store.locations[0]?.description, "12 Library Road");
+    assert.equal(store.locations[0]?.city, "Pune");
   });
 
   it("rejects invalid text, coordinates, and category references", async () => {

@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { Severity } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,19 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { submitIssue, type IssueFormState } from "@/lib/issues/actions";
 import { severityLabel } from "@/lib/issues/labels";
 import type { IssueCategoryOption } from "@/lib/issues/types";
-import { parseCoordinatePair } from "@/lib/issues/validate";
-
-const LocationMap = dynamic(
-  () => import("@/components/maps/issue-location-map").then((module) => module.IssueLocationMap),
-  {
-    ssr: false,
-    loading: () => (
-      <p role="status" className="flex h-72 items-center rounded-md border border-border bg-card px-4 text-sm text-muted-foreground">
-        Loading map
-      </p>
-    ),
-  },
-);
 
 const initial: IssueFormState = { message: "", fieldErrors: {} };
 
@@ -40,47 +26,38 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-export function ReportForm({
-  categories,
-  tiles,
-}: {
-  categories: IssueCategoryOption[];
-  tiles: { url: string; attribution: string };
-}) {
+function RequiredMark() {
+  return <span className="text-small font-semibold text-muted-foreground"> Required</span>;
+}
+
+function Section({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-4 border-t border-border pt-5">
+      <div>
+        <h2 className="text-section font-semibold">{title}</h2>
+        <p className="mt-1 text-small text-muted-foreground">{hint}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export function ReportForm({ categories }: { categories: IssueCategoryOption[] }) {
   const [state, formAction, pending] = useActionState(submitIssue, initial);
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
-  const [locationNote, setLocationNote] = useState("");
   const [photos, setPhotos] = useState<SelectedPhoto[]>([]);
   const [photoNote, setPhotoNote] = useState("");
   const photosRef = useRef(photos);
-  photosRef.current = photos;
   const errors = state.fieldErrors;
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
 
   useEffect(() => {
     return () => {
       for (const photo of photosRef.current) URL.revokeObjectURL(photo.url);
     };
   }, []);
-
-  function readDeviceLocation() {
-    if (!navigator.geolocation) {
-      setLocationNote("This browser cannot provide coordinates.");
-      return;
-    }
-    setLocationNote("Looking up coordinates.");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(position.coords.latitude.toFixed(6));
-        setLongitude(position.coords.longitude.toFixed(6));
-        setLocationNote("Coordinates filled from this device after you asked. Check the point on the map. It is not a verified street address.");
-      },
-      () => {
-        setLocationNote("Coordinates were not available. Enter them if you know them.");
-      },
-      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 8_000 },
-    );
-  }
 
   function addPhotos(list: FileList | null) {
     if (!list) return;
@@ -121,248 +98,212 @@ export function ReportForm({
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          name="title"
-          required
-          minLength={8}
-          maxLength={160}
-          autoComplete="off"
-          aria-invalid={Boolean(errors.title)}
-          aria-describedby={errors.title ? "title-error" : "title-hint"}
-        />
-        <p id="title-hint" className="text-small text-muted-foreground">
-          A short name for the problem, from 8 to 160 characters.
-        </p>
-        <FieldError id="title-error" message={errors.title} />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          name="description"
-          required
-          minLength={20}
-          maxLength={5000}
-          aria-invalid={Boolean(errors.description)}
-          aria-describedby={errors.description ? "description-error" : "description-hint"}
-        />
-        <p id="description-hint" className="text-small text-muted-foreground">
-          What is wrong, where it affects people, and anything a responder should know. 20 to 5000 characters.
-        </p>
-        <FieldError id="description-error" message={errors.description} />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="categoryId">Category</Label>
-        <select
-          id="categoryId"
-          name="categoryId"
-          required
-          defaultValue=""
-          aria-invalid={Boolean(errors.categoryId)}
-          aria-describedby={errors.categoryId ? "category-error" : undefined}
-          className={controlClass}
-        >
-          <option value="">Choose a category</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        <FieldError id="category-error" message={errors.categoryId} />
-      </div>
-
-      <fieldset
-        className="flex flex-col gap-2"
-        aria-invalid={Boolean(errors.severity)}
-        aria-describedby={errors.severity ? "severity-error" : undefined}
-      >
-        <legend className="text-label font-semibold">Severity</legend>
-        {Object.values(Severity).map((severity) => (
-          <label key={severity} className="flex items-center gap-2 text-body">
-            <input type="radio" name="severity" value={severity} />
-            {severityLabel(severity)}
-          </label>
-        ))}
-        <FieldError id="severity-error" message={errors.severity} />
-      </fieldset>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="locationDescription">Place or address</Label>
-        <Input
-          id="locationDescription"
-          name="locationDescription"
-          required
-          minLength={3}
-          maxLength={500}
-          autoComplete="street-address"
-          aria-invalid={Boolean(errors.locationDescription)}
-          aria-describedby={
-            errors.locationDescription ? "location-error" : "location-hint"
-          }
-        />
-        <p id="location-hint" className="text-small text-muted-foreground">
-          A landmark, street, or address someone can use to find the problem.
-        </p>
-        <FieldError id="location-error" message={errors.locationDescription} />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
+      <Section title="Issue" hint="Say what is wrong and how serious it is.">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="city">City</Label>
+          <Label htmlFor="title">
+            Title
+            <RequiredMark />
+          </Label>
           <Input
-            id="city"
-            name="city"
+            id="title"
+            name="title"
             required
-            maxLength={120}
-            autoComplete="address-level2"
-            aria-invalid={Boolean(errors.city)}
-            aria-describedby={errors.city ? "city-error" : undefined}
-          />
-          <FieldError id="city-error" message={errors.city} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="locality">Neighbourhood</Label>
-          <Input
-            id="locality"
-            name="locality"
+            minLength={8}
             maxLength={160}
-            autoComplete="address-level3"
-            aria-invalid={Boolean(errors.locality)}
-            aria-describedby={errors.locality ? "locality-error" : "locality-hint"}
+            autoComplete="off"
+            aria-invalid={Boolean(errors.title)}
+            aria-describedby={errors.title ? "title-error" : "title-hint"}
           />
-          <p id="locality-hint" className="text-small text-muted-foreground">
-            Optional.
+          <p id="title-hint" className="text-small text-muted-foreground">
+            A short name for the problem, from 8 to 160 characters.
           </p>
-          <FieldError id="locality-error" message={errors.locality} />
+          <FieldError id="title-error" message={errors.title} />
         </div>
-      </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="postalCode">Postal code</Label>
-        <Input
-          id="postalCode"
-          name="postalCode"
-          maxLength={16}
-          autoComplete="postal-code"
-          className="sm:max-w-48"
-          aria-invalid={Boolean(errors.postalCode)}
-          aria-describedby={errors.postalCode ? "postal-error" : "postal-hint"}
-        />
-        <p id="postal-hint" className="text-small text-muted-foreground">
-          Optional.
-        </p>
-        <FieldError id="postal-error" message={errors.postalCode} />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="description">
+            Description
+            <RequiredMark />
+          </Label>
+          <Textarea
+            id="description"
+            name="description"
+            required
+            minLength={20}
+            maxLength={5000}
+            aria-invalid={Boolean(errors.description)}
+            aria-describedby={errors.description ? "description-error" : "description-hint"}
+          />
+          <p id="description-hint" className="text-small text-muted-foreground">
+            What is wrong and who it affects. 20 to 5000 characters.
+          </p>
+          <FieldError id="description-error" message={errors.description} />
+        </div>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="text-label font-semibold">Map location</legend>
-        <p id="coordinates-hint" className="text-small text-muted-foreground">
-          Click the map or drag the marker to choose the issue location. The point is the place you selected. It is not a verified street address. You can also type both coordinates, or leave both blank. Street and city stay required.
-        </p>
-        <LocationMap
-          tiles={tiles}
-          point={parseCoordinatePair(latitude, longitude)}
-          onPick={(nextLatitude, nextLongitude) => {
-            setLatitude(nextLatitude);
-            setLongitude(nextLongitude);
-            setLocationNote("Selected on the map. This point is not a verified street address.");
-          }}
-        />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="latitude">Latitude</Label>
+            <Label htmlFor="categoryId">
+              Category
+              <RequiredMark />
+            </Label>
+            <select
+              id="categoryId"
+              name="categoryId"
+              required
+              defaultValue=""
+              aria-invalid={Boolean(errors.categoryId)}
+              aria-describedby={errors.categoryId ? "category-error" : undefined}
+              className={controlClass}
+            >
+              <option value="">Choose a category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <FieldError id="category-error" message={errors.categoryId} />
+          </div>
+          <fieldset
+            className="flex flex-col gap-2"
+            aria-invalid={Boolean(errors.severity)}
+            aria-describedby={errors.severity ? "severity-error" : undefined}
+          >
+            <legend className="text-label font-semibold">
+              Severity
+              <RequiredMark />
+            </legend>
+            {Object.values(Severity).map((severity) => (
+              <label key={severity} className="flex items-center gap-2 text-body">
+                <input type="radio" name="severity" value={severity} />
+                {severityLabel(severity)}
+              </label>
+            ))}
+            <FieldError id="severity-error" message={errors.severity} />
+          </fieldset>
+        </div>
+      </Section>
+
+      <Section title="Location" hint="Name the street, landmark, neighbourhood, and city. A map point is not needed.">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="locationDescription">
+            Street or landmark
+            <RequiredMark />
+          </Label>
+          <Input
+            id="locationDescription"
+            name="locationDescription"
+            required
+            minLength={3}
+            maxLength={500}
+            autoComplete="street-address"
+            aria-invalid={Boolean(errors.locationDescription)}
+            aria-describedby={errors.locationDescription ? "location-error" : "location-hint"}
+          />
+          <p id="location-hint" className="text-small text-muted-foreground">
+            An address or landmark someone can use to find the problem.
+          </p>
+          <FieldError id="location-error" message={errors.locationDescription} />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="locality">Neighbourhood</Label>
             <Input
-              id="latitude"
-              name="latitude"
-              inputMode="decimal"
-              autoComplete="off"
-              value={latitude}
-              onChange={(event) => setLatitude(event.target.value)}
-              aria-invalid={Boolean(errors.latitude)}
-              aria-describedby={errors.latitude ? "latitude-error" : "coordinates-hint"}
+              id="locality"
+              name="locality"
+              maxLength={160}
+              autoComplete="address-level3"
+              aria-invalid={Boolean(errors.locality)}
+              aria-describedby={errors.locality ? "locality-error" : "locality-hint"}
             />
-            <FieldError id="latitude-error" message={errors.latitude} />
+            <p id="locality-hint" className="text-small text-muted-foreground">
+              Optional.
+            </p>
+            <FieldError id="locality-error" message={errors.locality} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="longitude">Longitude</Label>
+            <Label htmlFor="city">
+              City
+              <RequiredMark />
+            </Label>
             <Input
-              id="longitude"
-              name="longitude"
-              inputMode="decimal"
-              autoComplete="off"
-              value={longitude}
-              onChange={(event) => setLongitude(event.target.value)}
-              aria-invalid={Boolean(errors.longitude)}
-              aria-describedby={errors.longitude ? "longitude-error" : "coordinates-hint"}
+              id="city"
+              name="city"
+              required
+              maxLength={120}
+              autoComplete="address-level2"
+              aria-invalid={Boolean(errors.city)}
+              aria-describedby={errors.city ? "city-error" : undefined}
             />
-            <FieldError id="longitude-error" message={errors.longitude} />
+            <FieldError id="city-error" message={errors.city} />
           </div>
         </div>
-        {parseCoordinatePair(latitude, longitude) ? (
-          <p role="status" className="text-small">
-            Selected point: {latitude}, {longitude}
-          </p>
-        ) : null}
-        <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={readDeviceLocation}>
-          Use this device&apos;s location
-        </Button>
-        {locationNote ? (
-          <p role="status" className="text-small">
-            {locationNote}
-          </p>
-        ) : null}
-      </fieldset>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="photos">Photographs</Label>
-        <input
-          id="photos"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          className="w-full border border-input bg-card px-3 py-2 text-base text-foreground file:mr-3 file:border-0 file:bg-transparent file:text-base file:text-foreground"
-          aria-invalid={Boolean(errors.photos)}
-          aria-describedby={errors.photos ? "photos-error" : "photos-hint"}
-          onChange={(event) => {
-            addPhotos(event.target.files);
-            event.target.value = "";
-          }}
-        />
-        <p id="photos-hint" className="text-small text-muted-foreground">
-          Optional. JPEG, PNG, or WebP. Up to 4 photographs, 5 MB each.
-        </p>
-        <FieldError id="photos-error" message={errors.photos} />
-        {photoNote ? (
-          <p role="status" className="text-small">
-            {photoNote}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="postalCode">Postal code</Label>
+          <Input
+            id="postalCode"
+            name="postalCode"
+            maxLength={16}
+            autoComplete="postal-code"
+            className="sm:max-w-48"
+            aria-invalid={Boolean(errors.postalCode)}
+            aria-describedby={errors.postalCode ? "postal-error" : "postal-hint"}
+          />
+          <p id="postal-hint" className="text-small text-muted-foreground">
+            Optional.
           </p>
-        ) : null}
-        {photos.length > 0 ? (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {photos.map((photo) => (
-              <li key={photo.key} className="flex flex-col gap-2">
-                <img
-                  src={photo.url}
-                  alt="Selected photograph"
-                  className="h-24 w-full border border-border object-cover"
-                />
-                <button type="button" className="text-small underline" onClick={() => removePhoto(photo.key)}>
-                  Remove photograph
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+          <FieldError id="postal-error" message={errors.postalCode} />
+        </div>
+      </Section>
+
+      <Section title="Photographs" hint="Optional. Add up to 4 JPEG, PNG, or WebP photographs, 5 MB each.">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="photos">Upload photographs</Label>
+          <input
+            id="photos"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="w-full border border-input bg-card px-3 py-2 text-base text-foreground file:mr-3 file:border-0 file:bg-transparent file:text-base file:text-foreground"
+            aria-invalid={Boolean(errors.photos)}
+            aria-describedby={errors.photos ? "photos-error" : "photos-hint"}
+            onChange={(event) => {
+              addPhotos(event.target.files);
+              event.target.value = "";
+            }}
+          />
+          <p id="photos-hint" className="text-small text-muted-foreground">
+            {photos.length} of 4 selected.
+          </p>
+          <FieldError id="photos-error" message={errors.photos} />
+          {photoNote ? (
+            <p role="alert" className="text-small text-destructive">
+              {photoNote}
+            </p>
+          ) : null}
+          {photos.length > 0 ? (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {photos.map((photo) => (
+                <li key={photo.key} className="flex flex-col gap-2">
+                  <img
+                    src={photo.url}
+                    alt="Selected photograph"
+                    className="h-24 w-full border border-border object-cover"
+                  />
+                  <button type="button" className="text-small underline" onClick={() => removePhoto(photo.key)}>
+                    Remove photograph
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      </Section>
 
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-        {pending ? "Submitting" : "Submit report"}
+        {pending ? "Submitting report" : "Submit report"}
       </Button>
     </form>
   );

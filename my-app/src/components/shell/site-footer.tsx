@@ -15,9 +15,6 @@ export function SiteFooter() {
           <Link href="/#how-it-works" className="text-foreground no-underline hover:underline">
             How it works
           </Link>
-          <Link href="/explore" className="text-foreground no-underline hover:underline">
-            Explore issues
-          </Link>
           <Link href="/report" className="text-foreground no-underline hover:underline">
             Report an issue
           </Link>

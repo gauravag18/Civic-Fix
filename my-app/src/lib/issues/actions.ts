@@ -11,7 +11,7 @@ import { validateIssueImages, type ImageCandidate } from "@/lib/issues/image-rul
 import { FIELD_PHOTOS, ISSUE_CHECK_FIELDS, ISSUE_RATE_LIMITED, ISSUE_SAVE_FAILED, ISSUE_SIGN_IN } from "@/lib/issues/messages";
 import { createPrismaIssueStore } from "@/lib/issues/prisma-store";
 import { claimIssueSubmission, createCitizenIssue } from "@/lib/issues/service";
-import type { IssueFieldErrors } from "@/lib/issues/validate";
+import { citizenReportInput, type IssueFieldErrors } from "@/lib/issues/validate";
 
 export type IssueFormState = {
   message: string;
@@ -67,7 +67,7 @@ export async function submitIssue(
     }
     const result = await createCitizenIssue(
       authorization,
-      {
+      citizenReportInput({
         title: text(formData, "title"),
         description: text(formData, "description"),
         categoryId: text(formData, "categoryId"),
@@ -76,9 +76,9 @@ export async function submitIssue(
         city: text(formData, "city"),
         locality: text(formData, "locality"),
         postalCode: text(formData, "postalCode"),
-        latitude: text(formData, "latitude"),
-        longitude: text(formData, "longitude"),
-      },
+        latitude: "",
+        longitude: "",
+      }),
       createPrismaIssueStore(),
       new Date(),
       address === "unknown" ? null : address,

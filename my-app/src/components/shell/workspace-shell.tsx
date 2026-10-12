@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Capability, hasCapability } from "@/lib/auth/capabilities";
 import { getAuthorization } from "@/lib/auth/authorization";
 import { AppChrome, type ShellLink } from "@/components/shell/app-chrome";
-import { NotificationBell } from "@/components/shell/notification-bell";
 
 export async function WorkspaceShell({
   area,
@@ -30,7 +29,6 @@ export async function WorkspaceShell({
       signedIn={Boolean(authorization)}
       title={title}
       lede={lede}
-      bell={<NotificationBell />}
     >
       {children}
     </AppChrome>
@@ -40,35 +38,29 @@ export async function WorkspaceShell({
 function linksFor(area: "citizen" | "department" | "admin", staff: boolean, admin: boolean): ShellLink[] {
   if (area === "admin") {
     return [
-      { href: "/admin", label: "Overview" },
-      { href: "/admin/departments", label: "Departments" },
-      { href: "/admin/categories", label: "Categories" },
-      { href: "/admin/users", label: "Users and staff" },
-      { href: "/admin/issues", label: "Delete a report" },
-      { href: "/admin/analytics", label: "Analytics" },
-      { href: "/explore", label: "Explore issues" },
-      { href: "/notifications", label: "Notifications" },
-      { href: "/account", label: "Account" },
+      { href: "/admin", label: "Overview", group: "Overview" },
+      { href: "/admin/analytics", label: "Analytics", group: "Overview" },
+      { href: "/admin/departments", label: "Departments", group: "Setup" },
+      { href: "/admin/categories", label: "Categories", group: "Setup" },
+      { href: "/admin/users", label: "Users and staff", group: "Setup" },
+      { href: "/admin/issues", label: "Reports", group: "Reports" },
+      { href: "/account", label: "Account", group: "Account" },
     ];
   }
   if (area === "department") {
     return [
-      { href: "/department", label: "Department queue" },
-      { href: "/department?view=unassigned", label: "Unassigned reports" },
-      { href: "/department/analytics", label: "Department analytics" },
-      { href: "/explore", label: "Explore issues" },
-      { href: "/notifications", label: "Notifications" },
-      { href: "/account", label: "Account" },
-      ...(admin ? [{ href: "/admin", label: "Administration" }] : []),
+      { href: "/department", label: "Queue", group: "Queue" },
+      { href: "/department?view=unassigned", label: "Reports to take", group: "Queue" },
+      { href: "/department/analytics", label: "Department analytics", group: "Queue" },
+      { href: "/account", label: "Account", group: "Account" },
+      ...(admin ? [{ href: "/admin", label: "Administration", group: "Account" }] : []),
     ];
   }
   return [
-    { href: "/report", label: "Report an issue" },
-    { href: "/my-issues", label: "My issues" },
-    { href: "/explore", label: "Explore issues" },
-    { href: "/notifications", label: "Notifications" },
-    { href: "/account", label: "Account" },
-    ...(staff ? [{ href: "/department", label: "Department queue" }] : []),
-    ...(admin ? [{ href: "/admin", label: "Administration" }] : []),
+    { href: "/report", label: "Report issue", group: "Reports" },
+    { href: "/my-issues", label: "My issues", group: "Reports" },
+    { href: "/account", label: "Account", group: "Account" },
+    ...(staff ? [{ href: "/department", label: "Queue", group: "Account" }] : []),
+    ...(admin ? [{ href: "/admin", label: "Administration", group: "Account" }] : []),
   ];
 }

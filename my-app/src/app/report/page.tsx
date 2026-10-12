@@ -3,18 +3,16 @@ import { AppPage } from "@/components/app-page";
 import { ReportForm } from "@/components/report-form";
 import { ISSUE_FORBIDDEN } from "@/lib/issues/messages";
 import { loadReportPage } from "@/lib/issues/queries";
-import { mapTileConfig } from "@/lib/maps/tiles";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportPage() {
   const page = await loadReportPage();
-  const tiles = mapTileConfig();
 
   return (
     <AppPage
       title="Report an issue"
-      lede="Describe a civic problem you have seen. A submitted report is saved under your account and starts as reported."
+      lede="Describe the problem and where it is. A submitted report is saved under your account and starts as reported."
     >
       {page.state === "signed-out" ? (
         <p>
@@ -31,7 +29,7 @@ export default async function ReportPage() {
         </p>
       ) : null}
       {page.state === "ready" && page.categories.length > 0 ? (
-        <ReportForm categories={page.categories} tiles={tiles} />
+        <ReportForm categories={page.categories} />
       ) : null}
     </AppPage>
   );

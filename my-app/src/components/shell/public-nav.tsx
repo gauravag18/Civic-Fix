@@ -22,7 +22,6 @@ export async function PublicNav() {
   const links = [
     { href: "/", label: "Home" },
     { href: "/#how-it-works", label: "How it works" },
-    { href: "/explore", label: "Explore issues" },
     ...(authorization
       ? [
           { href: "/my-issues", label: "My issues" },

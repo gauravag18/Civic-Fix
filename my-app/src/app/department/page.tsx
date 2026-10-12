@@ -27,19 +27,27 @@ export default async function DepartmentPage({
 
   return (
     <AppPage area="department"
-      title="Department queue"
-      lede="Reports assigned to your department, and reports your department can take."
+      title={kind === "assigned" ? "Assigned reports" : "Reports to take"}
+      lede={
+        kind === "assigned"
+          ? "Reports already assigned to your department. Open one to update it."
+          : "Reports your department can take. Open one, then assign it before changing its status."
+      }
     >
-      <nav aria-label="Queue" className="text-small">
-        <Link href="/department" aria-current={kind === "assigned" ? "page" : undefined}>
+      <nav aria-label="Queue" className="flex flex-wrap gap-2">
+        <Link
+          href="/department"
+          aria-current={kind === "assigned" ? "page" : undefined}
+          className={kind === "assigned" ? "rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground no-underline" : "rounded-md border border-border bg-card px-3 py-2 text-sm font-semibold no-underline"}
+        >
           Assigned
         </Link>
-        {" · "}
         <Link
           href="/department?view=unassigned"
           aria-current={kind === "unassigned" ? "page" : undefined}
+          className={kind === "unassigned" ? "rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground no-underline" : "rounded-md border border-border bg-card px-3 py-2 text-sm font-semibold no-underline"}
         >
-          Unassigned
+          Available to take
         </Link>
       </nav>
       {!result.ok && result.reason === "signed-out" ? (

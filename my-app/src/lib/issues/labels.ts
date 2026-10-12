@@ -23,6 +23,13 @@ export function statusLabel(status: IssueStatus): string {
   return STATUS_LABELS[status];
 }
 
+export function statusProgress(status: IssueStatus): "Open" | "In progress" | "Resolved" | "Rejected" {
+  if (status === IssueStatus.IN_PROGRESS) return "In progress";
+  if (status === IssueStatus.RESOLVED || status === IssueStatus.CLOSED) return "Resolved";
+  if (status === IssueStatus.REJECTED) return "Rejected";
+  return "Open";
+}
+
 export function severityLabel(severity: Severity): string {
   return SEVERITY_LABELS[severity];
 }

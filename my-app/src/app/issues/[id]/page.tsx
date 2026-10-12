@@ -3,10 +3,9 @@ import { notFound } from "next/navigation";
 import { AppPage } from "@/components/app-page";
 import { SeverityMark, StatusMark } from "@/components/issue-mark";
 import { IssuePhotos } from "@/components/issue-photos";
-import { PublicationForm } from "@/components/publication-form";
 import { formatWhen, statusLabel } from "@/lib/issues/labels";
-import { ISSUE_DETAIL_UNAVAILABLE, ISSUE_SIGN_IN, PUBLICATION_LOAD } from "@/lib/issues/messages";
-import { loadMyIssue, loadOwnedPublication } from "@/lib/issues/queries";
+import { ISSUE_DETAIL_UNAVAILABLE, ISSUE_SIGN_IN } from "@/lib/issues/messages";
+import { loadMyIssue } from "@/lib/issues/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +14,7 @@ export default async function IssuePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ submitted?: string; existing?: string; published?: string; unpublished?: string }>;
+  searchParams: Promise<{ submitted?: string; existing?: string }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
@@ -43,7 +42,6 @@ export default async function IssuePage({
   }
 
   const issue = result.issue;
-  const publication = await loadOwnedPublication(id);
   const place = [issue.location.locality, issue.location.city, issue.location.postalCode]
     .filter((part): part is string => Boolean(part))
     .join(", ");
@@ -56,12 +54,6 @@ export default async function IssuePage({
       ) : null}
       {query.existing === "1" ? (
         <p role="status">This matching report was already submitted.</p>
-      ) : null}
-      {query.published === "1" ? (
-        <p role="status">This report is now listed on Explore.</p>
-      ) : null}
-      {query.unpublished === "1" ? (
-        <p role="status">This report was removed from Explore.</p>
       ) : null}
       <p className="flex flex-wrap items-center gap-2">
         <StatusMark status={issue.status} />
@@ -77,14 +69,6 @@ export default async function IssuePage({
         <div className="flex flex-col gap-1 border-b border-border px-3 py-2 sm:flex-row sm:items-baseline sm:justify-between">
           <dt className="font-semibold">Location</dt>
           <dd>{place}</dd>
-        </div>
-        <div className="flex flex-col gap-1 border-b border-border px-3 py-2 sm:flex-row sm:items-baseline sm:justify-between">
-          <dt className="font-semibold">Coordinates</dt>
-          <dd>
-            {issue.location.latitude && issue.location.longitude
-              ? `${issue.location.latitude}, ${issue.location.longitude}`
-              : "Not provided"}
-          </dd>
         </div>
         <div className="flex flex-col gap-1 px-3 py-2 sm:flex-row sm:items-baseline sm:justify-between">
           <dt className="font-semibold">Reported</dt>
@@ -136,11 +120,6 @@ export default async function IssuePage({
           ))}
         </ol>
       </section>
-      {publication.state === "ready" ? (
-        <PublicationForm issueId={issue.id} published={publication.publishedAt !== null} />
-      ) : (
-        <p role="alert">{PUBLICATION_LOAD}</p>
-      )}
       <p className="text-small">
         <Link href="/my-issues">My reports</Link>
         {" · "}

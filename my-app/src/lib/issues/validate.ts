@@ -77,6 +77,10 @@ export function isUuid(value: string): boolean {
   return UUID.test(value);
 }
 
+export function citizenReportInput(input: RawIssueFields): RawIssueFields {
+  return { ...input, latitude: "", longitude: "" };
+}
+
 export function parseCoordinatePair(
   latitudeRaw: string,
   longitudeRaw: string,
