@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
   // A copied token for an account that is still active cannot be revoked
   // without new session storage. Disablement, suspension, and a password
   // change are rejected on the next session check, and that check clears the
-  // cookie. The custom Session table is unused.
+  // cookie.
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   pages: { signIn: "/login", error: "/login" },
   cookies: {

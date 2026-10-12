@@ -186,10 +186,6 @@ export function createPrismaAuthStore(): AuthStore {
           where: { id: target.id },
           data: { accountStatus: "DISABLED", disabledAt: input.now },
         });
-        await tx.session.updateMany({
-          where: { userId: target.id, revokedAt: null },
-          data: { revokedAt: input.now },
-        });
         return "disabled" as const;
       });
     },

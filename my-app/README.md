@@ -96,7 +96,6 @@ erDiagram
   User ||--o{ DepartmentMembership : joins
   Department ||--o{ DepartmentMembership : employs
   User ||--o| UserCredential : has
-  User ||--o{ Session : opens
   User |o--o{ AuditLog : performs
 
   User ||--o{ Issue : reports
@@ -107,8 +106,6 @@ erDiagram
   Issue ||--o{ IssueComment : has
   User ||--o{ IssueComment : writes
   User |o--o{ IssueComment : removes
-  User ||--o{ IssueVote : casts
-  Issue ||--o{ IssueVote : collects
   Issue ||--o{ IssueAssignment : receives
   Department ||--o{ IssueAssignment : owns
   User |o--o{ IssueAssignment : is_assigned
@@ -154,12 +151,6 @@ erDiagram
     uuid userId FK
     string passwordHash
   }
-  Session {
-    uuid id PK
-    uuid userId FK
-    bytes tokenHash UK
-    datetime expiresAt
-  }
   IssueCategory {
     uuid id PK
     string code UK
@@ -194,10 +185,6 @@ erDiagram
     uuid issueId FK
     uuid authorId FK
     uuid deletedById FK
-  }
-  IssueVote {
-    uuid issueId PK
-    uuid userId PK
   }
   IssueAssignment {
     uuid id PK

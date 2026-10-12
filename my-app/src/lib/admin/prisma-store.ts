@@ -587,12 +587,6 @@ export function createPrismaAdminStore(): AdminStore {
               disabledAt: input.status === "DISABLED" ? input.now : input.status === "ACTIVE" ? null : undefined,
             },
           });
-          if (input.status !== "ACTIVE") {
-            await db.session.updateMany({
-              where: { userId: user.id, revokedAt: null },
-              data: { revokedAt: input.now },
-            });
-          }
           await audit(db, {
             actorId: input.actorId,
             action: "user.status",

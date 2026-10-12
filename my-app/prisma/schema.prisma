@@ -60,12 +60,10 @@ model User {
   rolesAssigned            UserRole[]               @relation("UserRoleAssigner")
   departmentMemberships    DepartmentMembership[]
   credential            UserCredential?
-  sessions              Session[]
   reportedIssues        Issue[]                  @relation("IssueReporter")
   uploadedImages           IssueImage[]
   commentsAuthored         IssueComment[]           @relation("CommentAuthor")
   commentsDeleted          IssueComment[]           @relation("CommentDeleter")
-  votes                    IssueVote[]
   assignmentsReceived      IssueAssignment[]        @relation("AssignmentAssignee")
   assignmentsMade          IssueAssignment[]        @relation("AssignmentAssigner")
   statusChanges            IssueStatusHistory[]
@@ -154,7 +152,6 @@ model Issue {
   location      Location             @relation(fields: [locationId], references: [id], onDelete: Restrict)
   images        IssueImage[]
   comments      IssueComment[]
-  votes         IssueVote[]
   assignments   IssueAssignment[]
   statusHistory IssueStatusHistory[]
   notifications Notification[]
@@ -211,17 +208,6 @@ model IssueComment {
   notifications Notification[]
 
   @@index([issueId, createdAt], map: "comment_issue_created_at")
-}
-
-model IssueVote {
-  issueId   String   @db.Uuid
-  userId    String   @db.Uuid
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-
-  issue Issue @relation(fields: [issueId], references: [id], onDelete: Restrict)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
-
-  @@id([issueId, userId])
 }
 
 model IssueAssignment {
@@ -300,8 +286,6 @@ model AuditLog {
   @@index([actorId, createdAt], map: "audit_actor_created_at")
 }
 
-// Credential and one-time token tables. Auth.js Credentials uses JWT sessions,
-// so this Session model is not an Auth.js adapter session.
 // CHECK constraints live in the applied add_civicfix_authentication migration.
 
 model UserCredential {
@@ -312,18 +296,4 @@ model UserCredential {
   passwordChangedAt DateTime @default(now()) @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-}
-
-model Session {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String    @db.Uuid
-  tokenHash Bytes     @unique @db.ByteA
-  expiresAt DateTime  @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  revokedAt DateTime? @db.Timestamptz(3)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-
-  @@index([userId, revokedAt], map: "session_user_revoked_at")
-  @@index([expiresAt], map: "session_expires_at")
 }
