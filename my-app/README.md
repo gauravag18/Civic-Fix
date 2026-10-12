@@ -6,6 +6,17 @@ CivicFix is the workspace where a resident files a street, sanitation, water, or
 
 The repository overview is also in the parent [README](../README.md). Commands on this page run from `my-app`.
 
+## Testing
+
+Sign in at `/login`.
+
+| Field | Value |
+| --- | --- |
+| Email | `admin@gmail.com` |
+| Password | `admin@civicfix-2` |
+
+This administrator can open `/admin`.
+
 ## System design
 
 CivicFix is a **three-tier layered monolith** with **role-based access control**.

@@ -3,10 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { CATEGORY_SEEDS } from "../src/lib/issues/category-seeds";
 
-// Upserts the reviewed starter categories by code.
-// Does not create users, issues, departments, or assignments.
-// Run from my-app only after reviewing src/lib/issues/category-seeds.ts:
-//   npm run db:seed-categories
+// Upserts starter categories by code. Does not create users, issues, or departments.
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;

@@ -1,9 +1,6 @@
 import type { IssueStatus } from "@/generated/prisma/enums";
 
-// Reviewed department workflow. The seed script inserts these pairs.
-// It does not create users, departments, or issues.
-// REJECTED and REOPENED stay out of this list; those statuses require a
-// reason in the database, and the staff service enforces that if a pair is added later.
+// REJECTED and REOPENED stay out. Those statuses require a reason if added later.
 export const TRANSITION_SEEDS: readonly {
   fromStatus: IssueStatus;
   toStatus: IssueStatus;

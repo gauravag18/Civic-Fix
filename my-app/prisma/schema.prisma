@@ -1,7 +1,5 @@
-// Approved CivicFix domain schema.
-// Partial unique indexes use the Prisma 7.10 preview feature `partialIndexes`.
-// CHECK constraints that Prisma cannot represent are in prisma/sql/pending-check-constraints.sql.
-// That SQL is not a migration and must not be applied until a migration is reviewed.
+// Partial unique indexes need the Prisma preview feature `partialIndexes`.
+// prisma/sql/pending-check-constraints.sql is not a migration. Do not apply it.
 
 generator client {
   provider        = "prisma-client"

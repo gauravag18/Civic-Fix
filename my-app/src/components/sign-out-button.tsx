@@ -11,10 +11,6 @@ export function SignOutButton({
   className?: string;
   variant?: "secondary" | "ghost" | "outline";
 }) {
-  // Sign-out deletes this browser's session cookie. A copied JWT for an account
-  // that is still active remains valid until the 12-hour expiry. Disablement,
-  // suspension, or a password change is enforced on the next session check,
-  // which clears that cookie.
   return (
     <Button
       type="button"

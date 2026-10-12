@@ -1,8 +1,8 @@
 import { hash, verify, type Options } from "@node-rs/argon2";
 
 const OPTIONS: Options = {
-  // 2 is Argon2id. The const enum cannot be imported when isolatedModules is enabled.
-  algorithm: 2, // Argon2id. The package exposes this as a const enum, which isolatedModules cannot import.
+  // Argon2id. The const enum cannot be imported when isolatedModules is enabled.
+  algorithm: 2,
   memoryCost: 19456,
   timeCost: 2,
   parallelism: 1,

@@ -5,33 +5,8 @@ import { decideBootstrap } from "../src/lib/admin/rules";
 import { hashPassword, validatePassword } from "../src/lib/auth/password";
 import { normalizeEmail, normalizeName } from "../src/lib/auth/service";
 
-// Local operator command for the first administrator.
-// It is not an HTTP route and is not called from build, startup, or seeding.
-//
-// Preconditions:
-// - DATABASE_URL is set for this process.
-// - The ADMINISTRATOR role already exists (npm run db:seed-roles).
-// - The user table is empty. Any existing user refuses the command.
-// - No active administrator exists.
-// - BOOTSTRAP_ADMIN_CONFIRM=yes.
-// - BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_NAME, and BOOTSTRAP_ADMIN_PASSWORD
-//   are supplied in the environment for this invocation. Do not store the
-//   password in .env.
-//
-// The account can sign in immediately. Registration does not require email
-// verification. This command still grants ADMINISTRATOR only through this
-// explicit local step.
-//
-// The account receives ADMINISTRATOR. When the CITIZEN role already exists,
-// it also receives CITIZEN. It does not receive staff or moderator access.
-//
-// From my-app, in PowerShell, for one process only:
-//   $env:BOOTSTRAP_ADMIN_CONFIRM = "yes"
-//   $env:BOOTSTRAP_ADMIN_EMAIL = "you@example.com"
-//   $env:BOOTSTRAP_ADMIN_NAME = "Your Name"
-//   $env:BOOTSTRAP_ADMIN_PASSWORD = "<password of 12 to 128 characters>"
-//   npm run admin:bootstrap
-//   Remove-Item Env:BOOTSTRAP_ADMIN_PASSWORD
+// Local one-shot command. Not part of build or startup.
+// Refuses to run when any user already exists. Do not store the password in .env.
 
 const MESSAGES = {
   confirm: "Set BOOTSTRAP_ADMIN_CONFIRM=yes to run this command.",

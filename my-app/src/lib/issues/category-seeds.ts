@@ -1,5 +1,3 @@
-// Reviewed starter categories. The seed script upserts these by code.
-// It does not create users, issues, or departments.
 export const CATEGORY_SEEDS: readonly {
   code: string;
   name: string;

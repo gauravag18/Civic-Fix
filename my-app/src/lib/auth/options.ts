@@ -38,11 +38,8 @@ const cookieOptions = sessionCookiePolicy(secureCookies);
 export const authOptions: NextAuthOptions = {
   secret: authSecret(),
   useSecureCookies: secureCookies,
-  // JWT sessions last 12 hours. Sign-out deletes only this browser's cookie.
-  // A copied token for an account that is still active cannot be revoked
-  // without new session storage. Disablement, suspension, and a password
-  // change are rejected on the next session check, and that check clears the
-  // cookie.
+  // 12-hour JWT. Sign-out clears only this browser. Disablement, suspension,
+  // and a password change are rejected on the next request.
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   pages: { signIn: "/login", error: "/login" },
   cookies: {
@@ -59,9 +56,7 @@ export const authOptions: NextAuthOptions = {
       options: cookieOptions,
     },
   },
-  // Google is registered only when both server credentials exist.
-  // Linking is decided in authenticateGoogle, and only when Google reports
-  // the address as verified and the CivicFix account is active.
+  // Google is registered only when both server credentials are set.
   providers: [
     Credentials({
       name: "Email",

@@ -2,12 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/*
-  CivicFix uses one warm cream and espresso theme.
-  Motion is limited to press feedback. prefers-reduced-motion
-  removes CSS motion; Framer Motion checks the same preference.
-*/
-
 @custom-variant dark (&:is(.dark *));
 
 :root {

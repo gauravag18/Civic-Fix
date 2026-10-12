@@ -3,9 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { TRANSITION_SEEDS } from "../src/lib/issues/transition-seeds";
 
-// Upserts the reviewed status transitions. Does not create users, departments, or issues.
-// Run from my-app only after reviewing src/lib/issues/transition-seeds.ts:
-//   npm run db:seed-transitions
+// Upserts allowed status pairs. Does not create users, departments, or issues.
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
