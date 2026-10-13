@@ -131,13 +131,12 @@
   outline-offset: 2px;
 }
 
-a:where(:not([class])) {
-  color: var(--link);
-  text-underline-offset: 0.15em;
+a {
+  text-decoration: none;
 }
 
-a:where(:not([class])):hover {
-  text-decoration: underline;
+a:where(:not([class])) {
+  color: var(--link);
 }
 
 @media (prefers-reduced-motion: reduce) {

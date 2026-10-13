@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthForm } from "@/components/auth-form";
 import { AuthPage } from "@/components/auth-page";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { registerAction } from "@/lib/auth/actions";
@@ -38,9 +39,11 @@ export default function RegisterPage() {
           </p>
         </div>
       </AuthForm>
-      <p className="text-small">
-        <Link href="/login">Already have an account</Link>
-      </p>
+      <Button variant="outline" asChild className="mt-1 w-full">
+        <Link href="/login" className="no-underline">
+          Already have an account
+        </Link>
+      </Button>
     </AuthPage>
   );
 }

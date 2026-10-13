@@ -153,7 +153,7 @@ function ChromeBody({
                     {index === crumbs.length - 1 ? (
                       <span className="text-foreground">{crumb.label}</span>
                     ) : (
-                      <Link href={crumb.href} className="text-link no-underline hover:underline">
+                      <Link href={crumb.href} className="text-link">
                         {crumb.label}
                       </Link>
                     )}

@@ -2,9 +2,6 @@ export const LOGIN_FAILURE = "The email or password is incorrect.";
 
 export const SIGN_IN_FAILURE = "Sign-in did not succeed.";
 
-export const GOOGLE_UNAVAILABLE =
-  "Google sign-in is not available until it is configured.";
-
 export const REGISTER_NEUTRAL = "Account registered. You can log in.";
 
 export const REGISTRATION_UNAVAILABLE =

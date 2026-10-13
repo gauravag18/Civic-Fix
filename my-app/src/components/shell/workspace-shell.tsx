@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Capability, hasCapability } from "@/lib/auth/capabilities";
 import { getAuthorization } from "@/lib/auth/authorization";
 import { AppChrome, type ShellLink } from "@/components/shell/app-chrome";
+import { CitizenChrome } from "@/components/shell/citizen-chrome";
 
 export async function WorkspaceShell({
   area,
@@ -23,6 +24,26 @@ export async function WorkspaceShell({
       hasCapability(authorization.capabilities, Capability.accountDisable)
     : false;
 
+  if (area === "citizen") {
+    return (
+      <CitizenChrome
+        title={title}
+        lede={lede}
+        profile={
+          authorization
+            ? {
+                name: authorization.name,
+                email: authorization.email,
+                role: citizenRoleLabel(authorization.roleCodes),
+              }
+            : null
+        }
+      >
+        {children}
+      </CitizenChrome>
+    );
+  }
+
   return (
     <AppChrome
       items={linksFor(area, staff, admin)}
@@ -33,6 +54,17 @@ export async function WorkspaceShell({
       {children}
     </AppChrome>
   );
+}
+
+function citizenRoleLabel(roleCodes: string[]): string {
+  if (roleCodes.includes("CITIZEN") && !roleCodes.includes("DEPARTMENT_STAFF") && !roleCodes.includes("ADMINISTRATOR")) {
+    return "Citizen";
+  }
+  if (roleCodes.includes("ADMINISTRATOR")) return "Administrator";
+  if (roleCodes.includes("DEPARTMENT_STAFF")) return "Department staff";
+  if (roleCodes.includes("MODERATOR")) return "Moderator";
+  if (roleCodes.includes("CITIZEN")) return "Citizen";
+  return "Citizen";
 }
 
 function linksFor(area: "citizen" | "department" | "admin", staff: boolean, admin: boolean): ShellLink[] {

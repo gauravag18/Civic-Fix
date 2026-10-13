@@ -6,15 +6,9 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GOOGLE_UNAVAILABLE, LOGIN_FAILURE } from "@/lib/auth/messages";
+import { LOGIN_FAILURE } from "@/lib/auth/messages";
 
-export function LoginForm({
-  initialMessage,
-  googleEnabled,
-}: {
-  initialMessage?: string;
-  googleEnabled: boolean;
-}) {
+export function LoginForm({ initialMessage }: { initialMessage?: string }) {
   const router = useRouter();
   const [message, setMessage] = useState(initialMessage ?? "");
   const [pending, setPending] = useState(false);
@@ -30,7 +24,7 @@ export function LoginForm({
     });
     setPending(false);
     if (result?.ok) {
-      router.push("/account");
+      router.push("/my-issues");
       router.refresh();
       return;
     }
@@ -61,35 +55,6 @@ export function LoginForm({
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Please wait" : "Log in"}
       </Button>
-      {googleEnabled ? (
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full"
-          disabled={pending}
-          onClick={() => {
-            setPending(true);
-            void signIn("google", { callbackUrl: "/account" });
-          }}
-        >
-          Continue with Google
-        </Button>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            disabled
-            aria-describedby="google-unavailable"
-          >
-            Continue with Google
-          </Button>
-          <p id="google-unavailable" role="status" className="text-small text-muted-foreground">
-            {GOOGLE_UNAVAILABLE}
-          </p>
-        </div>
-      )}
     </form>
   );
 }
