@@ -307,8 +307,8 @@ There is no email delivery and no self-service password reset. Citizens and depa
 
 | Area | Paths |
 | --- | --- |
-| Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]` |
-| Department | `/department`, `/department/issues/[id]` |
+| Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]`, `/account/password` |
+| Department | `/department`, `/department/issues/[id]`, `/account/password` |
 | Administration | `/admin`, `/admin/departments`, `/admin/categories`, `/admin/users`, `/admin/issues` |
 | Photographs | `/api/issue-images/[imageId]` |
 
