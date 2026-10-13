@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Public_Sans } from "next/font/google";
+import { getServerSession } from "next-auth";
 import { cn } from "cn";
 import { AuthProviders } from "@/app/providers";
+import { authOptions } from "@/lib/auth/options";
 import "./globals.css";
 
 const publicSans = Public_Sans({
@@ -16,7 +18,9 @@ export const metadata: Metadata = {
     "Community-powered civic issue reporting and resolution platform.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="en" className={cn(publicSans.variable, "h-full antialiased")}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
@@ -26,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <AuthProviders>{children}</AuthProviders>
+        <AuthProviders session={session}>{children}</AuthProviders>
       </body>
     </html>
   );

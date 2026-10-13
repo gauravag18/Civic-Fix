@@ -37,7 +37,7 @@ flowchart TB
     Actions[Server Actions]
     ImageRoute[Photograph route]
     Guard[Session and capability checks]
-    Services[Issue, department, admin, and analytics services]
+    Services[Issue, department, and admin services]
     Actions --> Guard
     ImageRoute --> Guard
     Guard --> Services
@@ -236,11 +236,11 @@ Download the diagram: [doc/civicfix-er-diagram.png](doc/civicfix-er-diagram.png)
 
 ## Who uses it
 
-**Citizens** register, file a report, and follow it from My issues. They cannot change status, assign a department, or open another person's report.
+**Citizens** register from the landing page, file a report, and follow it from My issues. Signing in opens My issues. A report shows its photograph beside the location. Citizens cannot change status, assign a department, or open another person's report.
 
-**Department staff** open the queue when the account has the staff role and one active membership. They assign work inside their own department, change status only through an allowed pair, and leave a comment the reporter can read. Department analytics stay on that signed-in department.
+**Department staff** sign in to the department queue when the account has the staff role and one active membership. The department bar offers the queue and reports waiting to be taken. Staff assign work inside their own department, change status only through an allowed pair, and leave a comment the reporter can read.
 
-**Administrators** need both administrator capabilities. They manage departments, categories, and users, read organization analytics, browse every report, and delete one only by typing its title and a reason. A pure administrator does not receive a special pass to photograph bytes. The image route still allows the reporter or the assigned department.
+**Administrators** need both administrator capabilities. Signing in opens administration. They manage departments, categories, and users, browse every report, and delete one only by typing its title and a reason. A pure administrator does not receive a special pass to photograph bytes. The image route still allows the reporter or the assigned department.
 
 ## Tech stack
 
@@ -252,7 +252,6 @@ Download the diagram: [doc/civicfix-er-diagram.png](doc/civicfix-er-diagram.png)
 | Database | Prisma 7 and PostgreSQL | Issues, accounts, memberships, history, audit |
 | Photographs | Supabase Storage, private bucket | Bytes stay off the public internet |
 | Auth | NextAuth.js 4, Argon2id | JWT sessions and password hashes |
-| Charts | Recharts | Administrator and department analytics |
 
 ## Local development
 
@@ -309,8 +308,8 @@ There is no email delivery and no self-service password reset. A signed-in perso
 | Area | Paths |
 | --- | --- |
 | Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]`, `/account` |
-| Department | `/department`, `/department/issues/[id]`, `/department/analytics` |
-| Administration | `/admin`, `/admin/analytics`, `/admin/departments`, `/admin/categories`, `/admin/users`, `/admin/issues` |
+| Department | `/department`, `/department/issues/[id]` |
+| Administration | `/admin`, `/admin/departments`, `/admin/categories`, `/admin/users`, `/admin/issues` |
 | Photographs | `/api/issue-images/[imageId]` |
 
 Explore and Notifications are not part of the interface. Department updates can still write notification rows. Citizens follow a report from My issues.

@@ -115,7 +115,7 @@ function NavItem({ href, current, children }: { href: string; current: boolean; 
   );
 }
 
-function UserMenu({ profile }: { profile: CitizenProfile }) {
+export function UserMenu({ profile }: { profile: CitizenProfile }) {
   const [open, setOpen] = useState(false);
   const titleId = useId();
   const rootRef = useRef<HTMLDivElement>(null);

@@ -189,8 +189,6 @@ const CRUMB_LABELS: Record<string, string> = {
   "/admin/users": "Users and staff",
   "/admin/users/new": "Provision staff",
   "/admin/issues": "Reports",
-  "/admin/analytics": "Analytics",
-  "/department/analytics": "Department analytics",
 };
 
 function breadcrumb(pathname: string): { href: string; label: string }[] {

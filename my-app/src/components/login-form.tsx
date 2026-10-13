@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { homeAfterSignIn } from "@/lib/auth/home-action";
 import { LOGIN_FAILURE } from "@/lib/auth/messages";
 
 export function LoginForm({ initialMessage }: { initialMessage?: string }) {
@@ -24,7 +25,7 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
     });
     setPending(false);
     if (result?.ok) {
-      router.push("/my-issues");
+      router.push(await homeAfterSignIn());
       router.refresh();
       return;
     }

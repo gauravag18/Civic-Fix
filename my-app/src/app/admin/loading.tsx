@@ -1,5 +1,5 @@
 import { PageLoading } from "@/components/page-loading";
 
-export default function DepartmentAnalyticsLoading() {
+export default function Loading() {
   return <PageLoading />;
 }

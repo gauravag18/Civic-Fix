@@ -3,6 +3,7 @@ import { Capability, hasCapability } from "@/lib/auth/capabilities";
 import { getAuthorization } from "@/lib/auth/authorization";
 import { AppChrome, type ShellLink } from "@/components/shell/app-chrome";
 import { CitizenChrome } from "@/components/shell/citizen-chrome";
+import { DepartmentChrome } from "@/components/shell/department-chrome";
 
 export async function WorkspaceShell({
   area,
@@ -24,21 +25,23 @@ export async function WorkspaceShell({
       hasCapability(authorization.capabilities, Capability.accountDisable)
     : false;
 
-  if (area === "citizen") {
-    return (
-      <CitizenChrome
-        title={title}
-        lede={lede}
-        profile={
-          authorization
-            ? {
-                name: authorization.name,
-                email: authorization.email,
-                role: citizenRoleLabel(authorization.roleCodes),
-              }
-            : null
+  if (area === "citizen" || area === "department") {
+    const profile = authorization
+      ? {
+          name: authorization.name,
+          email: authorization.email,
+          role: citizenRoleLabel(authorization.roleCodes),
         }
-      >
+      : null;
+    if (area === "department") {
+      return (
+        <DepartmentChrome title={title} lede={lede} profile={profile} showAdmin={admin}>
+          {children}
+        </DepartmentChrome>
+      );
+    }
+    return (
+      <CitizenChrome title={title} lede={lede} profile={profile}>
         {children}
       </CitizenChrome>
     );
@@ -71,7 +74,6 @@ function linksFor(area: "citizen" | "department" | "admin", staff: boolean, admi
   if (area === "admin") {
     return [
       { href: "/admin", label: "Overview", group: "Overview" },
-      { href: "/admin/analytics", label: "Analytics", group: "Overview" },
       { href: "/admin/departments", label: "Departments", group: "Setup" },
       { href: "/admin/categories", label: "Categories", group: "Setup" },
       { href: "/admin/users", label: "Users and staff", group: "Setup" },
@@ -83,7 +85,6 @@ function linksFor(area: "citizen" | "department" | "admin", staff: boolean, admi
     return [
       { href: "/department", label: "Queue", group: "Queue" },
       { href: "/department?view=unassigned", label: "Reports to take", group: "Queue" },
-      { href: "/department/analytics", label: "Department analytics", group: "Queue" },
       { href: "/account", label: "Account", group: "Account" },
       ...(admin ? [{ href: "/admin", label: "Administration", group: "Account" }] : []),
     ];

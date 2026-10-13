@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { getAuthorization } from "@/lib/auth/authorization";
+import { workspaceOf, type Workspace } from "@/lib/auth/home-path";
 import { StreetSketch } from "@/components/street-sketch";
 import { PublicFrame } from "@/components/shell/public-frame";
 import { Button } from "@/components/ui/button";
@@ -21,8 +23,11 @@ const steps = [
 
 const statuses = ["Reported", "Under review", "Assigned", "In progress", "Resolved"];
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
-  const authorization = await getAuthorization();
+  await connection();
+  const workspace = workspaceOf(await getAuthorization());
 
   return (
     <PublicFrame>
@@ -36,7 +41,7 @@ export default async function Home() {
               A citizen account is how you report a street, lighting, drainage, or sanitation problem. The department that takes the work updates the status, and that record stays with your account.
             </p>
             <div className="mt-8">
-              <AccountActions signedIn={Boolean(authorization)} />
+              <AccountActions workspace={workspace} />
             </div>
           </div>
           <StreetSketch />
@@ -84,12 +89,22 @@ export default async function Home() {
         <section className="border-t border-border">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6 md:flex-row md:items-center md:justify-between">
             <div className="max-w-xl">
-              <h2 className="text-3xl font-semibold tracking-tight">Start with a citizen account</h2>
+              <h2 className="text-3xl font-semibold tracking-tight">
+                {workspace === "department"
+                  ? "Open your department"
+                  : workspace === "admin"
+                    ? "Administration"
+                    : "Start with a citizen account"}
+              </h2>
               <p className="mt-3 text-muted-foreground">
-                Register if you are new. Sign in if you already have an account.
+                {workspace === "department"
+                  ? "The queue holds reports assigned to your department. Reports to take are still waiting."
+                  : workspace === "admin"
+                    ? "Open administration to manage departments, staff, and reports."
+                    : "Register if you are new. Sign in if you already have an account."}
               </p>
             </div>
-            <AccountActions signedIn={Boolean(authorization)} />
+            <AccountActions workspace={workspace} />
           </div>
         </section>
       </main>
@@ -97,36 +112,62 @@ export default async function Home() {
   );
 }
 
-function AccountActions({ signedIn }: { signedIn: boolean }) {
+function AccountActions({ workspace }: { workspace: Workspace | null }) {
+  if (workspace === "department") {
+    return (
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button asChild>
+          <Link href="/department" className="no-underline">
+            Open the queue
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/department?view=unassigned" className="no-underline">
+            Reports to take
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+  if (workspace === "admin") {
+    return (
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button asChild>
+          <Link href="/admin" className="no-underline">
+            Administration
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+  if (workspace === "citizen") {
+    return (
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button asChild>
+          <Link href="/report" className="no-underline">
+            Report an issue
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/my-issues" className="no-underline">
+            My issues
+          </Link>
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
-      {signedIn ? (
-        <>
-          <Button asChild>
-            <Link href="/report" className="no-underline">
-              Report an issue
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/my-issues" className="no-underline">
-              My issues
-            </Link>
-          </Button>
-        </>
-      ) : (
-        <>
-          <Button asChild>
-            <Link href="/register" className="no-underline">
-              Create a citizen account
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/login" className="no-underline">
-              Sign in
-            </Link>
-          </Button>
-        </>
-      )}
+      <Button asChild>
+        <Link href="/register" className="no-underline">
+          Create a citizen account
+        </Link>
+      </Button>
+      <Button variant="outline" asChild>
+        <Link href="/login" className="no-underline">
+          Sign in
+        </Link>
+      </Button>
     </div>
   );
 }
