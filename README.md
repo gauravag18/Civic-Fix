@@ -258,8 +258,8 @@ Download the diagram: [doc/civicfix-er-diagram.png](doc/civicfix-er-diagram.png)
 The application package is `my-app`. Node.js 20 or newer is required. Use a PostgreSQL database such as Neon, and a private storage bucket before photographs will upload.
 
 ```bash
-git clone https://github.com/gauravag18/Seva-Slot.git
-cd Seva-Slot/my-app
+git clone https://github.com/gauravag18/Civic-Fix.git
+cd Civic-Fix/my-app
 npm install
 npx prisma generate
 ```
@@ -301,13 +301,13 @@ Role seeding upserts the four roles. Category seeding upserts the eight starter 
 
 The first administrator can be created only while the user table is empty. Set `BOOTSTRAP_ADMIN_CONFIRM=yes` plus the email, name, and password in the process environment for that one command. Do not put the password in `.env`. On PowerShell, remove `BOOTSTRAP_ADMIN_PASSWORD` from the session after `npm run admin:bootstrap`.
 
-There is no email delivery and no self-service password reset. A signed-in person can change a password at `/account/password`. An administrator delivers a new staff password through a separate channel. The department queue opens for an active member without forcing that change.
+There is no email delivery and no self-service password reset. Citizens and department staff change a password from the Password button in the header, which opens `/account/password`. An administrator delivers a new staff password through a separate channel. The department queue opens for an active member without forcing that change.
 
 ## Routes
 
 | Area | Paths |
 | --- | --- |
-| Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]`, `/account` |
+| Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]` |
 | Department | `/department`, `/department/issues/[id]` |
 | Administration | `/admin`, `/admin/departments`, `/admin/categories`, `/admin/users`, `/admin/issues` |
 | Photographs | `/api/issue-images/[imageId]` |

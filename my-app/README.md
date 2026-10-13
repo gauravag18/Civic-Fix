@@ -307,13 +307,13 @@ npm run admin:bootstrap
 Remove-Item Env:BOOTSTRAP_ADMIN_PASSWORD
 ```
 
-There is no email delivery and no self-service password reset. A signed-in person can change a password at `/account/password`. An administrator delivers a new staff password through a separate channel. The department queue opens for an active member without forcing that change.
+There is no email delivery and no self-service password reset. Citizens and department staff change a password from the Password button in the header, which opens `/account/password`. An administrator delivers a new staff password through a separate channel. The department queue opens for an active member without forcing that change.
 
 ## Routes
 
 | Area | Paths |
 | --- | --- |
-| Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]`, `/account` |
+| Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]` |
 | Department | `/department`, `/department/issues/[id]` |
 | Administration | `/admin`, `/admin/departments`, `/admin/categories`, `/admin/users`, `/admin/issues` |
 | Photographs | `/api/issue-images/[imageId]` |

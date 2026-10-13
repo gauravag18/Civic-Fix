@@ -13,7 +13,7 @@ const initial: PublicResult = { error: false, message: "" };
 export function ChangePasswordForm() {
   const [state, action, pending] = useActionState(changePasswordAction, initial);
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form action={action} className="flex max-w-md flex-col gap-4">
       {state.message ? (
         <p role={state.error ? "alert" : "status"} className={state.error ? "text-destructive" : undefined}>
           {state.message}

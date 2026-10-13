@@ -78,22 +78,19 @@ function linksFor(area: "citizen" | "department" | "admin", staff: boolean, admi
       { href: "/admin/categories", label: "Categories", group: "Setup" },
       { href: "/admin/users", label: "Users and staff", group: "Setup" },
       { href: "/admin/issues", label: "Reports", group: "Reports" },
-      { href: "/account", label: "Account", group: "Account" },
     ];
   }
   if (area === "department") {
     return [
       { href: "/department", label: "Queue", group: "Queue" },
       { href: "/department?view=unassigned", label: "Reports to take", group: "Queue" },
-      { href: "/account", label: "Account", group: "Account" },
-      ...(admin ? [{ href: "/admin", label: "Administration", group: "Account" }] : []),
+      ...(admin ? [{ href: "/admin", label: "Administration", group: "Queue" }] : []),
     ];
   }
   return [
     { href: "/report", label: "Report issue", group: "Reports" },
     { href: "/my-issues", label: "My issues", group: "Reports" },
-    { href: "/account", label: "Account", group: "Account" },
-    ...(staff ? [{ href: "/department", label: "Queue", group: "Account" }] : []),
-    ...(admin ? [{ href: "/admin", label: "Administration", group: "Account" }] : []),
+    ...(staff ? [{ href: "/department", label: "Queue", group: "Reports" }] : []),
+    ...(admin ? [{ href: "/admin", label: "Administration", group: "Reports" }] : []),
   ];
 }

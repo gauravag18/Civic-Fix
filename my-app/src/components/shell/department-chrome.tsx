@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { UserMenu, type CitizenProfile } from "@/components/shell/citizen-chrome";
+import { PasswordLink, UserMenu, type CitizenProfile } from "@/components/shell/citizen-chrome";
 import { Wordmark } from "@/components/shell/wordmark";
 import { cn } from "cn";
 
 const CRUMB_LABELS: Record<string, string> = {
   "/department": "Queue",
   "/department/issues": "Report",
+  "/account/password": "Change password",
 };
 
 export function DepartmentChrome({
@@ -94,7 +95,12 @@ export function DepartmentNav({
           Administration
         </NavItem>
       ) : null}
-      {profile ? <UserMenu profile={profile} /> : (
+      {profile ? (
+        <div className="ml-1 flex items-center gap-2 border-l border-border pl-2">
+          <PasswordLink />
+          <UserMenu profile={profile} />
+        </div>
+      ) : (
         <Link href="/login" className="rounded-md px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted">
           Sign in
         </Link>
@@ -121,8 +127,9 @@ function NavItem({ href, current, children }: { href: string; current: boolean; 
 function breadcrumb(pathname: string): { href: string; label: string }[] {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length < 2) return [];
-  return parts.map((part, index) => {
+  return parts.flatMap((part, index) => {
     const href = `/${parts.slice(0, index + 1).join("/")}`;
-    return { href, label: CRUMB_LABELS[href] ?? "Details" };
+    if (href === "/account") return [];
+    return [{ href, label: CRUMB_LABELS[href] ?? "Details" }];
   });
 }

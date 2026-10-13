@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Wordmark } from "@/components/shell/wordmark";
+import { Button } from "@/components/ui/button";
 import { cn } from "cn";
 
 export type CitizenProfile = {
@@ -73,14 +74,14 @@ export function CitizenNavLinks({ profile }: { profile: CitizenProfile | null })
   const issuesCurrent = pathname === "/my-issues" || pathname.startsWith("/issues/");
 
   return (
-    <nav aria-label="Citizen" className="ml-auto flex items-center gap-1">
+    <nav aria-label="Citizen" className="ml-auto flex flex-wrap items-center justify-end gap-1">
       <NavItem href="/report" current={reportCurrent}>
         Report an issue
       </NavItem>
       <NavItem href="/my-issues" current={issuesCurrent}>
         My issues
       </NavItem>
-      {profile ? <UserMenu profile={profile} /> : (
+      {profile ? <AccountActions profile={profile} /> : (
         <Link href="/login" className="rounded-md px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted">
           Sign in
         </Link>
@@ -112,6 +113,29 @@ function NavItem({ href, current, children }: { href: string; current: boolean; 
     >
       {children}
     </Link>
+  );
+}
+
+function AccountActions({ profile }: { profile: CitizenProfile }) {
+  return (
+    <div className="ml-1 flex items-center gap-2 border-l border-border pl-2">
+      <PasswordLink />
+      <UserMenu profile={profile} />
+    </div>
+  );
+}
+
+export function PasswordLink() {
+  const pathname = usePathname();
+  const current = pathname === "/account/password";
+
+  return (
+    <Button variant="outline" asChild className={cn(current && "border-accent bg-accent/10 text-accent")}>
+      <Link href="/account/password" aria-current={current ? "page" : undefined}>
+        <KeyIcon />
+        Password
+      </Link>
+    </Button>
   );
 }
 
@@ -164,6 +188,16 @@ export function UserMenu({ profile }: { profile: CitizenProfile }) {
   );
 }
 
+function KeyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+      <circle cx="8" cy="14" r="3.25" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M10.5 12.2 19.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M16 8 18.2 10.2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function UserIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
@@ -176,8 +210,9 @@ function UserIcon() {
 function breadcrumb(pathname: string): { href: string; label: string }[] {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length < 2) return [];
-  return parts.map((part, index) => {
+  return parts.flatMap((part, index) => {
     const href = `/${parts.slice(0, index + 1).join("/")}`;
-    return { href, label: CRUMB_LABELS[href] ?? "Details" };
+    if (href === "/account") return [];
+    return [{ href, label: CRUMB_LABELS[href] ?? "Details" }];
   });
 }
