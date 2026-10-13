@@ -64,23 +64,23 @@ function UserRecord({
         <Link href="/admin/users">All users</Link>
       </p>
       <dl className="border border-border text-small">
-        <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 border-b border-border px-3 py-2">
           <dt className="font-semibold">Name</dt>
           <dd>{user.name}</dd>
         </div>
-        <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 border-b border-border px-3 py-2">
           <dt className="font-semibold">Email</dt>
           <dd>{user.email}</dd>
         </div>
-        <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 border-b border-border px-3 py-2">
           <dt className="font-semibold">Status</dt>
           <dd>{user.accountStatus}</dd>
         </div>
-        <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 border-b border-border px-3 py-2">
           <dt className="font-semibold">Account</dt>
           <dd>{user.activation === "admin" ? "Admin-provisioned" : "Registered"}</dd>
         </div>
-        <div className="flex items-baseline justify-between gap-4 px-3 py-2">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 px-3 py-2">
           <dt className="font-semibold">Department</dt>
           <dd>
             {user.departmentId ? (

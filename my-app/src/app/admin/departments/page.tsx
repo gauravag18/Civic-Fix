@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { AdminDenied, AdminPage, PageLinks, SearchForm } from "@/components/admin-page";
+import { AdminDenied, AdminPage, DirectoryBar, EmptyNote, PageLinks, RecordCard, RecordGrid } from "@/components/admin-page";
 import { loadAdminDepartments } from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";
@@ -19,37 +18,35 @@ export default async function DepartmentsPage({
       {!result.ok ? <AdminDenied reason={result.reason} /> : null}
       {result.ok ? (
         <>
-          <p className="text-small">
-            <Link href="/admin/departments/new">New department</Link>
-          </p>
-          <SearchForm action="/admin/departments" query={query} />
+          <DirectoryBar
+            action="/admin/departments"
+            query={query}
+            createHref="/admin/departments/new"
+            createLabel="New department"
+          />
           {result.total === 0 ? (
-            <p>
+            <EmptyNote>
               {query
                 ? "No departments match this search."
                 : "No departments yet. Create one, then add eligible staff from the department page."}
-            </p>
-          ) : null}
-          {result.total > 0 ? (
-            <ol className="flex flex-col gap-3">
+            </EmptyNote>
+          ) : (
+            <RecordGrid>
               {result.items.map((department) => (
-                <li key={department.id} className="rounded-md border border-border bg-card px-4 py-4">
-                  <h2 className="text-subsection font-semibold">
-                    <Link href={`/admin/departments/${department.id}`}>{department.name}</Link>
-                  </h2>
-                  <p className="mt-2 text-small text-muted-foreground">
-                    {department.code}
-                    {" · "}
-                    {department.isActive ? "Active" : "Inactive"}
-                    {" · "}
-                    {department.activeMemberships} staff
-                    {" · "}
-                    {department.activeAssignments} open assignments
-                  </p>
-                </li>
+                <RecordCard
+                  key={department.id}
+                  href={`/admin/departments/${department.id}`}
+                  title={department.name}
+                  code={department.code}
+                  facts={[
+                    { label: "Status", value: department.isActive ? "Active" : "Inactive" },
+                    { label: "Staff", value: department.activeMemberships },
+                    { label: "Open assignments", value: department.activeAssignments },
+                  ]}
+                />
               ))}
-            </ol>
-          ) : null}
+            </RecordGrid>
+          )}
           {result.total > result.pageSize ? (
             <PageLinks base="/admin/departments" query={query} page={result.page} lastPage={lastPage} />
           ) : null}

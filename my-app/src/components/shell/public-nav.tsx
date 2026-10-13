@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getAuthorization } from "@/lib/auth/authorization";
 import { workspaceOf } from "@/lib/auth/home-path";
-import { CitizenNavLinks, UserMenu, type CitizenProfile } from "@/components/shell/citizen-chrome";
+import { AdminNav } from "@/components/shell/admin-chrome";
+import { CitizenNavLinks, type CitizenProfile } from "@/components/shell/citizen-chrome";
 import { DepartmentNav } from "@/components/shell/department-chrome";
 import { Wordmark } from "@/components/shell/wordmark";
 import { Button } from "@/components/ui/button";
@@ -29,22 +30,15 @@ export async function PublicNav() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl items-start gap-2 px-4 py-3 sm:items-center sm:gap-3 sm:px-6">
         <Wordmark icon={false} />
         {profile && workspace === "department" ? (
           <DepartmentNav profile={profile} showAdmin={profile.role === "Administrator"} />
         ) : null}
-        {profile && workspace === "admin" ? (
-          <nav aria-label="Administration" className="ml-auto flex items-center gap-1">
-            <Link href="/admin" className="rounded-md px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted">
-              Administration
-            </Link>
-            <UserMenu profile={profile} />
-          </nav>
-        ) : null}
+        {profile && workspace === "admin" ? <AdminNav profile={profile} /> : null}
         {profile && workspace === "citizen" ? <CitizenNavLinks profile={profile} /> : null}
         {profile ? null : (
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
             <Button variant="outline" asChild>
               <Link href="/login">Sign in</Link>
             </Button>

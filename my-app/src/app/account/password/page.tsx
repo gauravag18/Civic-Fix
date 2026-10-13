@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function ChangePasswordPage() {
   const authorization = await getAuthorization();
 
-  const area = workspaceOf(authorization) === "department" ? "department" : "citizen";
+  const workspace = workspaceOf(authorization);
+  const area = workspace === "department" || workspace === "admin" ? workspace : "citizen";
 
   return (
     <AppPage

@@ -21,13 +21,13 @@ function severityVariant(
   return "outline";
 }
 
-export function StatusMark({ status }: { status: IssueStatusValue }) {
+export function StatusMark({ status, compact = false }: { status: IssueStatusValue; compact?: boolean }) {
   const progress = statusProgress(status);
   const label = statusLabel(status);
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       <Badge variant={statusVariant(status)}>{label}</Badge>
-      {progress !== label ? <span className="text-small text-muted-foreground">{progress}</span> : null}
+      {!compact && progress !== label ? <span className="text-small text-muted-foreground">{progress}</span> : null}
     </span>
   );
 }

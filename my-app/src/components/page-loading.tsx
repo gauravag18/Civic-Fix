@@ -33,10 +33,10 @@ export function PageLoading({ variant = "list" }: { variant?: "list" | "detail" 
 
 function ListBody() {
   return (
-    <div className="flex flex-col gap-3">
-      <Bone className="h-24 w-full" />
-      <Bone className="h-24 w-full" />
-      <Bone className="h-24 w-full" />
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <Bone className="h-40 w-full" />
+      <Bone className="h-40 w-full" />
+      <Bone className="h-40 w-full" />
     </div>
   );
 }

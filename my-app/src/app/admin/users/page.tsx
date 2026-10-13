@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { AdminDenied, AdminPage, PageLinks, SearchForm } from "@/components/admin-page";
+import { AdminDenied, AdminPage, DirectoryBar, EmptyNote, PageLinks, RecordCard, RecordGrid } from "@/components/admin-page";
 import { loadAdminUsers } from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +6,21 @@ export const dynamic = "force-dynamic";
 function activationLabel(activation: "admin" | "registered"): string {
   if (activation === "admin") return "Admin-provisioned";
   return "Registered";
+}
+
+function statusText(status: string): string {
+  if (status === "ACTIVE") return "Active";
+  if (status === "SUSPENDED") return "Suspended";
+  if (status === "DISABLED") return "Disabled";
+  return status;
+}
+
+function roleText(role: string): string {
+  if (role === "CITIZEN") return "Citizen";
+  if (role === "DEPARTMENT_STAFF") return "Department staff";
+  if (role === "MODERATOR") return "Moderator";
+  if (role === "ADMINISTRATOR") return "Administrator";
+  return role;
 }
 
 export default async function UsersPage({
@@ -24,32 +38,27 @@ export default async function UsersPage({
       {!result.ok ? <AdminDenied reason={result.reason} /> : null}
       {result.ok ? (
         <>
-          <p className="text-small">
-            <Link href="/admin/users/new">Provision staff</Link>
-          </p>
-          <SearchForm action="/admin/users" query={query} />
-          {result.total === 0 ? <p>No users match this search.</p> : null}
-          {result.total > 0 ? (
-            <ol className="flex flex-col gap-3">
+          <DirectoryBar action="/admin/users" query={query} createHref="/admin/users/new" createLabel="New user" />
+          {result.total === 0 ? (
+            <EmptyNote>{query ? "No users match this search." : "No users yet."}</EmptyNote>
+          ) : (
+            <RecordGrid>
               {result.items.map((user) => (
-                <li key={user.id} className="rounded-md border border-border bg-card px-4 py-4">
-                  <h2 className="text-subsection font-semibold">
-                    <Link href={`/admin/users/${user.id}`}>{user.name}</Link>
-                  </h2>
-                  <p className="mt-2 text-small text-muted-foreground">
-                    {user.email}
-                    {" · "}
-                    {user.accountStatus}
-                    {" · "}
-                    {activationLabel(user.activation)}
-                    {" · "}
-                    {user.roles.join(", ") || "No roles"}
-                    {user.departmentName ? ` · ${user.departmentName}` : ""}
-                  </p>
-                </li>
+                <RecordCard
+                  key={user.id}
+                  href={`/admin/users/${user.id}`}
+                  title={user.name}
+                  facts={[
+                    { label: "Email", value: user.email },
+                    { label: "Status", value: statusText(user.accountStatus) },
+                    { label: "Account", value: activationLabel(user.activation) },
+                    { label: "Roles", value: user.roles.map(roleText).join(", ") || "None" },
+                    { label: "Department", value: user.departmentName ?? "None" },
+                  ]}
+                />
               ))}
-            </ol>
-          ) : null}
+            </RecordGrid>
+          )}
           {result.total > result.pageSize ? (
             <PageLinks base="/admin/users" query={query} page={result.page} lastPage={lastPage} />
           ) : null}

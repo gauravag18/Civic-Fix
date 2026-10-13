@@ -1,4 +1,4 @@
-import { AdminDenied, AdminPage } from "@/components/admin-page";
+import { AdminDenied, AdminPage, StatCard, StatGrid } from "@/components/admin-page";
 import { statusLabel } from "@/lib/issues/labels";
 import { loadAdminDashboard } from "@/lib/admin/queries";
 
@@ -15,47 +15,28 @@ export default async function AdminDashboardPage() {
       {!result.ok ? <AdminDenied reason={result.reason} /> : null}
       {result.ok ? (
         <>
-          <dl className="overflow-hidden rounded-md border border-border bg-card text-small">
-            <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
-              <dt className="font-semibold">Issues</dt>
-              <dd>{result.counts.issues}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
-              <dt className="font-semibold">Active departments</dt>
-              <dd>
-                {result.counts.activeDepartments}
-                <span className="text-muted-foreground"> of {result.counts.departments}</span>
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
-              <dt className="font-semibold">Department staff memberships</dt>
-              <dd>{result.counts.activeMemberships}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
-              <dt className="font-semibold">Registered users</dt>
-              <dd>{result.counts.users}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-4 px-3 py-2">
-              <dt className="font-semibold">Issue categories</dt>
-              <dd>
-                {result.counts.categories}
-                <span className="text-muted-foreground"> ({result.counts.activeCategories} active)</span>
-              </dd>
-            </div>
-          </dl>
-          <section className="flex flex-col gap-2">
-            <h2 className="text-subsection font-semibold">Issues by status</h2>
-            <dl className="overflow-hidden rounded-md border border-border bg-card text-small">
+          <StatGrid>
+            <StatCard label="Reports" value={result.counts.issues} />
+            <StatCard
+              label="Departments"
+              value={result.counts.activeDepartments}
+              note={`${result.counts.departments} in total`}
+            />
+            <StatCard label="Staff memberships" value={result.counts.activeMemberships} />
+            <StatCard label="Users" value={result.counts.users} />
+            <StatCard
+              label="Categories"
+              value={result.counts.categories}
+              note={`${result.counts.activeCategories} active`}
+            />
+          </StatGrid>
+          <section className="flex flex-col gap-4">
+            <h2 className="text-xl font-semibold tracking-tight">Reports by status</h2>
+            <StatGrid>
               {result.counts.issuesByStatus.map((row) => (
-                <div
-                  key={row.status}
-                  className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2 last:border-b-0"
-                >
-                  <dt>{statusLabel(row.status)}</dt>
-                  <dd>{row.count}</dd>
-                </div>
+                <StatCard key={row.status} label={statusLabel(row.status)} value={row.count} />
               ))}
-            </dl>
+            </StatGrid>
           </section>
         </>
       ) : null}

@@ -87,24 +87,21 @@ export default async function Home() {
         </section>
 
         <section className="border-t border-border">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6 md:flex-row md:items-center md:justify-between">
-            <div className="max-w-xl">
-              <h2 className="text-3xl font-semibold tracking-tight">
-                {workspace === "department"
-                  ? "Open your department"
-                  : workspace === "admin"
-                    ? "Administration"
-                    : "Start with a citizen account"}
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                {workspace === "department"
-                  ? "The queue holds reports assigned to your department. Reports to take are still waiting."
-                  : workspace === "admin"
-                    ? "Open administration to manage departments, staff, and reports."
-                    : "Register if you are new. Sign in if you already have an account."}
-              </p>
-            </div>
-            <AccountActions workspace={workspace} />
+          <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              {workspace === "department"
+                ? "Open your department"
+                : workspace === "admin"
+                  ? "Administration"
+                  : "Start with a citizen account"}
+            </h2>
+            <p className="mt-3 max-w-xl text-muted-foreground">
+              {workspace === "department"
+                ? "The queue and reports waiting to be taken are in the bar above."
+                : workspace === "admin"
+                  ? "Overview, departments, categories, users, and reports are in the bar above."
+                  : "Register if you are new. Sign in if you already have an account."}
+            </p>
           </div>
         </section>
       </main>
@@ -115,55 +112,39 @@ export default async function Home() {
 function AccountActions({ workspace }: { workspace: Workspace | null }) {
   if (workspace === "department") {
     return (
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button asChild>
-          <Link href="/department" className="no-underline">
-            Open the queue
-          </Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/department?view=unassigned" className="no-underline">
-            Reports to take
-          </Link>
-        </Button>
-      </div>
+      <Button asChild className="w-full sm:w-auto">
+        <Link href="/department" className="no-underline">
+          Open the queue
+        </Link>
+      </Button>
     );
   }
   if (workspace === "admin") {
     return (
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button asChild>
-          <Link href="/admin" className="no-underline">
-            Administration
-          </Link>
-        </Button>
-      </div>
+      <Button asChild className="w-full sm:w-auto">
+        <Link href="/admin" className="no-underline">
+          Open administration
+        </Link>
+      </Button>
     );
   }
   if (workspace === "citizen") {
     return (
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button asChild>
-          <Link href="/report" className="no-underline">
-            Report an issue
-          </Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/my-issues" className="no-underline">
-            My issues
-          </Link>
-        </Button>
-      </div>
+      <Button asChild className="w-full sm:w-auto">
+        <Link href="/report" className="no-underline">
+          Report an issue
+        </Link>
+      </Button>
     );
   }
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
-      <Button asChild>
+      <Button asChild className="w-full sm:w-auto">
         <Link href="/register" className="no-underline">
           Create a citizen account
         </Link>
       </Button>
-      <Button variant="outline" asChild>
+      <Button variant="outline" asChild className="w-full sm:w-auto">
         <Link href="/login" className="no-underline">
           Sign in
         </Link>

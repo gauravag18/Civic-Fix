@@ -32,19 +32,19 @@ export default async function DepartmentDetailPage({
             <Link href="/admin/departments">All departments</Link>
           </p>
           <dl className="border border-border text-small">
-            <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
+            <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 border-b border-border px-3 py-2">
               <dt className="font-semibold">Code</dt>
               <dd>{result.department.code}</dd>
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
+            <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 border-b border-border px-3 py-2">
               <dt className="font-semibold">Status</dt>
               <dd>{result.department.isActive ? "Active" : "Inactive"}</dd>
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-b border-border px-3 py-2">
+            <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 border-b border-border px-3 py-2">
               <dt className="font-semibold">Open assignments</dt>
               <dd>{result.department.activeAssignments}</dd>
             </div>
-            <div className="flex items-baseline justify-between gap-4 px-3 py-2">
+            <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 px-3 py-2">
               <dt className="font-semibold">Created</dt>
               <dd>
                 <time dateTime={result.department.createdAt.toISOString()}>

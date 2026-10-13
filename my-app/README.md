@@ -242,7 +242,7 @@ Download the diagram: [../doc/civicfix-er-diagram.png](../doc/civicfix-er-diagra
 
 **Department staff** sign in to the department queue when the account has the staff role and one active membership. The department bar offers the queue and reports waiting to be taken. Staff assign work inside their own department, change status only through an allowed pair, and leave a comment the reporter can read.
 
-**Administrators** need both administrator capabilities. Signing in opens administration. They manage departments, categories, and users, browse every report, and delete one only by typing its title and a reason. A pure administrator does not receive a special pass to photograph bytes. The image route still allows the reporter or the assigned department.
+**Administrators** need both administrator capabilities. Signing in opens administration. The administration bar offers overview, departments, categories, users and staff, and reports. They delete a report only by typing its title and a reason. A pure administrator does not receive a special pass to photograph bytes. The image route still allows the reporter or the assigned department.
 
 ## Tech stack
 
@@ -307,7 +307,7 @@ npm run admin:bootstrap
 Remove-Item Env:BOOTSTRAP_ADMIN_PASSWORD
 ```
 
-There is no email delivery and no self-service password reset. Citizens and department staff change a password from the Password button in the header, which opens `/account/password`. An administrator delivers a new staff password through a separate channel. The department queue opens for an active member without forcing that change.
+There is no email delivery and no self-service password reset. Citizens, department staff, and administrators change a password from the Password button in the header, which opens `/account/password`. An administrator delivers a new staff password through a separate channel. The department queue opens for an active member without forcing that change.
 
 ## Routes
 
@@ -315,7 +315,7 @@ There is no email delivery and no self-service password reset. Citizens and depa
 | --- | --- |
 | Citizen | `/register`, `/login`, `/report`, `/my-issues`, `/issues/[id]`, `/account/password` |
 | Department | `/department`, `/department/issues/[id]`, `/account/password` |
-| Administration | `/admin`, `/admin/departments`, `/admin/categories`, `/admin/users`, `/admin/issues` |
+| Administration | `/admin`, `/admin/departments`, `/admin/categories`, `/admin/users`, `/admin/issues`, `/account/password` |
 | Photographs | `/api/issue-images/[imageId]` |
 
 Explore and Notifications are not part of the interface. Department updates can still write notification rows. Citizens follow a report from My issues.

@@ -32,7 +32,7 @@ export function DepartmentChrome({
   return (
     <div className="flex min-h-full w-full flex-1 flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-background">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex w-full max-w-6xl items-start gap-2 px-4 py-3 sm:items-center sm:gap-3 sm:px-6">
           <Wordmark icon={false} />
           <DepartmentNav profile={profile} showAdmin={showAdmin} />
         </div>
@@ -57,7 +57,7 @@ export function DepartmentChrome({
           </nav>
         ) : null}
         <header>
-          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
           {lede ? <p className="mt-2 max-w-2xl text-muted-foreground">{lede}</p> : null}
         </header>
         {children}
@@ -83,7 +83,7 @@ export function DepartmentNav({
     (pathname === "/department" && !taking) || pathname.startsWith("/department/issues");
 
   return (
-    <nav aria-label="Department" className="ml-auto flex flex-wrap items-center justify-end gap-1">
+    <nav aria-label="Department" className="ml-auto flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1">
       <NavItem href="/department" current={queue}>
         Queue
       </NavItem>
@@ -115,7 +115,7 @@ function NavItem({ href, current, children }: { href: string; current: boolean; 
       href={href}
       aria-current={current ? "page" : undefined}
       className={cn(
-        "rounded-md px-3 py-2 text-sm font-semibold",
+        "rounded-md px-2.5 py-1.5 text-sm font-semibold sm:px-3 sm:py-2",
         current ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
       )}
     >

@@ -59,7 +59,7 @@ export function CitizenChrome({
           </nav>
         ) : null}
         <header>
-          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
           {lede ? <p className="mt-2 max-w-2xl text-muted-foreground">{lede}</p> : null}
         </header>
         {children}
@@ -74,7 +74,7 @@ export function CitizenNavLinks({ profile }: { profile: CitizenProfile | null })
   const issuesCurrent = pathname === "/my-issues" || pathname.startsWith("/issues/");
 
   return (
-    <nav aria-label="Citizen" className="ml-auto flex flex-wrap items-center justify-end gap-1">
+    <nav aria-label="Citizen" className="ml-auto flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1">
       <NavItem href="/report" current={reportCurrent}>
         Report an issue
       </NavItem>
@@ -93,7 +93,7 @@ export function CitizenNavLinks({ profile }: { profile: CitizenProfile | null })
 function CitizenNav({ profile }: { profile: CitizenProfile | null }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl items-start gap-2 px-4 py-3 sm:items-center sm:gap-3 sm:px-6">
         <Wordmark icon={false} />
         <CitizenNavLinks profile={profile} />
       </div>
@@ -107,7 +107,7 @@ function NavItem({ href, current, children }: { href: string; current: boolean; 
       href={href}
       aria-current={current ? "page" : undefined}
       className={cn(
-        "rounded-md px-3 py-2 text-sm font-semibold",
+        "rounded-md px-2.5 py-1.5 text-sm font-semibold sm:px-3 sm:py-2",
         current ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
       )}
     >
@@ -176,7 +176,7 @@ export function UserMenu({ profile }: { profile: CitizenProfile }) {
         <div
           role="dialog"
           aria-labelledby={titleId}
-          className="absolute right-0 z-40 mt-2 w-64 rounded-md border border-border bg-card p-4 shadow-[var(--elevation-raised)]"
+          className="absolute right-0 z-40 mt-2 w-[min(16rem,calc(100vw-2rem))] rounded-md border border-border bg-card p-4 shadow-[var(--elevation-raised)]"
         >
           <p id={titleId} className="font-semibold">{profile.name}</p>
           <p className="mt-1 break-all text-sm text-muted-foreground">{profile.email}</p>

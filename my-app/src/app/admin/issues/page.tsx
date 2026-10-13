@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AdminDenied, AdminPage, PageLinks, SearchForm } from "@/components/admin-page";
+import { AdminDenied, AdminPage, DirectoryBar, EmptyNote, PageLinks, RecordCard, RecordGrid } from "@/components/admin-page";
 import { SeverityMark, StatusMark } from "@/components/issue-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,48 +32,49 @@ export default async function AdminIssuesPage({
       {!result.ok ? <AdminDenied reason={result.reason} /> : null}
       {result.ok ? (
         <>
-          <SearchForm action="/admin/issues" query={result.query} />
-          <form action="/admin/issues" method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            {id && !isUuid(id) ? (
-              <p role="alert" className="text-destructive sm:w-full">
-                Enter the report identifier from its address.
-              </p>
-            ) : null}
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="id">Report identifier</Label>
-              <Input id="id" name="id" defaultValue={id} autoComplete="off" />
-            </div>
-            <Button type="submit" variant="secondary" className="w-full sm:w-auto">
-              Open identifier
-            </Button>
-          </form>
-          {result.total === 0 ? <p>No reports match this search.</p> : null}
-          {result.total > 0 ? (
-            <ol className="flex flex-col gap-3">
+          <DirectoryBar action="/admin/issues" query={result.query}>
+            <form action="/admin/issues" method="get" className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-end">
+              {id && !isUuid(id) ? (
+                <p role="alert" className="text-destructive sm:w-full">
+                  Enter the report identifier from its address.
+                </p>
+              ) : null}
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <Label htmlFor="id">Report identifier</Label>
+                <Input id="id" name="id" defaultValue={id} autoComplete="off" />
+              </div>
+              <Button type="submit" variant="outline" className="w-full sm:w-auto">
+                Open identifier
+              </Button>
+            </form>
+          </DirectoryBar>
+          {result.total === 0 ? (
+            <EmptyNote>No reports match this search.</EmptyNote>
+          ) : (
+            <RecordGrid>
               {result.items.map((issue) => (
-                <li key={issue.id} className="rounded-md border border-border bg-card px-4 py-4">
-                  <h2 className="text-subsection font-semibold">
-                    <Link href={`/admin/issues/${issue.id}`}>{issue.title}</Link>
-                  </h2>
-                  <p className="mt-2 flex flex-wrap items-center gap-2">
-                    <StatusMark status={issue.status} />
-                    <SeverityMark severity={issue.severity} />
-                  </p>
-                  <p className="mt-2 text-small text-muted-foreground">
-                    {issue.categoryName}
-                    {" · "}
-                    {issue.reporterName}
-                    {" · "}
-                    {issue.departmentName ?? "No department"}
-                    {issue.assigneeName ? ` · ${issue.assigneeName}` : ""}
-                    {" · "}
-                    <time dateTime={issue.createdAt.toISOString()}>{formatWhen(issue.createdAt)} UTC</time>
-                    {issue.deletedAt ? " · Hidden" : ""}
-                  </p>
-                </li>
+                <RecordCard
+                  key={issue.id}
+                  href={`/admin/issues/${issue.id}`}
+                  title={issue.title}
+                  marks={
+                    <>
+                      <StatusMark status={issue.status} compact />
+                      <SeverityMark severity={issue.severity} />
+                    </>
+                  }
+                  facts={[
+                    { label: "Category", value: issue.categoryName },
+                    { label: "Reporter", value: issue.reporterName },
+                    { label: "Department", value: issue.departmentName ?? "None" },
+                    { label: "Assignee", value: issue.assigneeName ?? "None" },
+                    { label: "Reported", value: `${formatWhen(issue.createdAt)} UTC` },
+                    { label: "Record", value: issue.deletedAt ? "Hidden" : "Visible" },
+                  ]}
+                />
               ))}
-            </ol>
-          ) : null}
+            </RecordGrid>
+          )}
           {result.total > result.pageSize ? (
             <PageLinks base="/admin/issues" query={result.query} page={result.page} lastPage={lastPage} />
           ) : null}

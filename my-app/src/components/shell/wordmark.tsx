@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function Wordmark({ href = "/", icon = true }: { href?: string; icon?: boolean }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-2 whitespace-nowrap font-semibold text-foreground">
+    <Link href={href} className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap font-semibold text-foreground">
       {icon ? (
         <svg aria-hidden="true" viewBox="0 0 32 32" className="size-8">
           <rect width="32" height="32" rx="6" fill="#34251D" />

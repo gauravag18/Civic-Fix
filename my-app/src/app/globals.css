@@ -123,6 +123,21 @@
     font-family: var(--font-sans), "Segoe UI", sans-serif;
     font-size: 1rem;
     line-height: 1.6;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  dd,
+  li {
+    overflow-wrap: break-word;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
   }
 }
 

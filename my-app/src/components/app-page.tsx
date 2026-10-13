@@ -9,7 +9,7 @@ export function AppPage({
 }: {
   title: string;
   lede?: string;
-  area?: "citizen" | "department";
+  area?: "citizen" | "department" | "admin";
   children: ReactNode;
 }) {
   return (

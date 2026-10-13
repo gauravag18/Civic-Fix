@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { AdminDenied, AdminPage, PageLinks, SearchForm } from "@/components/admin-page";
+import { AdminDenied, AdminPage, DirectoryBar, EmptyNote, PageLinks, RecordCard, RecordGrid } from "@/components/admin-page";
 import { loadAdminCategories } from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";
@@ -19,31 +18,31 @@ export default async function CategoriesPage({
       {!result.ok ? <AdminDenied reason={result.reason} /> : null}
       {result.ok ? (
         <>
-          <p className="text-small">
-            <Link href="/admin/categories/new">New category</Link>
-          </p>
-          <SearchForm action="/admin/categories" query={query} />
-          {result.total === 0 ? <p>No categories match this search.</p> : null}
-          {result.total > 0 ? (
-            <ol className="flex flex-col gap-3">
+          <DirectoryBar
+            action="/admin/categories"
+            query={query}
+            createHref="/admin/categories/new"
+            createLabel="New category"
+          />
+          {result.total === 0 ? (
+            <EmptyNote>{query ? "No categories match this search." : "No categories yet."}</EmptyNote>
+          ) : (
+            <RecordGrid>
               {result.items.map((category) => (
-                <li key={category.id} className="rounded-md border border-border bg-card px-4 py-4">
-                  <h2 className="text-subsection font-semibold">
-                    <Link href={`/admin/categories/${category.id}`}>{category.name}</Link>
-                  </h2>
-                  <p className="mt-2 text-small text-muted-foreground">
-                    {category.code}
-                    {" · "}
-                    {category.isActive ? "Active" : "Inactive"}
-                    {" · "}
-                    order {category.sortOrder}
-                    {" · "}
-                    {category.issueCount} reports
-                  </p>
-                </li>
+                <RecordCard
+                  key={category.id}
+                  href={`/admin/categories/${category.id}`}
+                  title={category.name}
+                  code={category.code}
+                  facts={[
+                    { label: "Status", value: category.isActive ? "Active" : "Inactive" },
+                    { label: "Order", value: category.sortOrder },
+                    { label: "Reports", value: category.issueCount },
+                  ]}
+                />
               ))}
-            </ol>
-          ) : null}
+            </RecordGrid>
+          )}
           {result.total > result.pageSize ? (
             <PageLinks base="/admin/categories" query={query} page={result.page} lastPage={lastPage} />
           ) : null}
